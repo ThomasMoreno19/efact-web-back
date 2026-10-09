@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Empresa {
+  id                Int       @id @default(autoincrement())
+  nombre            String    @db.VarChar(100)
+  slug              String    @unique(map: "empresa_slug_unique") @db.VarChar(100)
+  telefono          String?   @db.VarChar(18)
+  ubicacion         String?   @db.VarChar(50)
+  logoUrl           String?   @map("logo_url") @db.VarChar(255)
+  excelImportToken  String?   @map("excel_import_token") @db.VarChar(512)
+
+  createdAt         DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt         DateTime? @updatedAt @map("updated_at") @db.DateTime(0)
+
+  tieneCarrito            Boolean
+  habilitarExcel          Boolean      @default(true) @map("habilitar_excel")
+  imagenesEnArticulos     Boolean      @default(true)
+  incluirHorarios         Boolean      @default(false)
+  pedidosFueraHorario     Boolean      @default(false)
+  incluirCodigoBarra      Boolean      @default(false)
+  toleranciaMinDias       Int?
+  toleranciaMaxDias       Int?
+  catalogoHabilitado      Boolean      @default(false) @map("catalogo_habilitado")
+  saldosHabilitados       Boolean      @default(false) @map("saldos_habilitados")
+  reparacionesHabilitadas Boolean      @default(false) @map("reparaciones_habilitadas")
+  articulo                Articulo[]
+  equipo                  Equipo[]
+  externo                 Externo[]
+  horarios                Horario[]
+  interno                 Interno?
+  marca                   Marca[]
+  movimiento              Movimiento[]
+  proveedor               Proveedor[]
+  rubro                   Rubro[]
+  ubicaciones             Ubicacion[]
+  usuarios                Usuario[]
+  cliente                 Cliente[]
+
+  @@map("empresa")
+}
+
+model Cliente {
+  idEmpresa  Int       @map("id_empresa")
+  cuil       String    @db.VarChar(30)
+  nombre     String?   @db.VarChar(150)
+  saldo      Int?
+  updatedAt  DateTime? @map("updated_at") @db.Date
+  contrasena String?   @db.VarChar(255)
+  domicilio  String?   @db.VarChar(255)
+  localidad  String?   @db.VarChar(150)
+  telefonos  String?   @db.VarChar(255)
+  empresa    Empresa   @relation(fields: [idEmpresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "cliente_id_empresa_foreign")
+  equipo     Equipo[]
+
+  @@id([cuil, idEmpresa])
+  @@index([idEmpresa], map: "cliente_id_empresa_index")
+  @@map("cliente")
+}
+
+model Usuario {
+  id               Int      @id @default(autoincrement())
+  nombre           String   @unique(map: "nombre") @db.VarChar(255)
+  contrasena       String   @db.VarChar(255)
+  role             Rol      @default(ADMIN)
+  idEmpresa        Int?     @map("id_empresa")
+  refreshTokenHash String?  @map("refresh_token") @db.VarChar(255)
+  empresa          Empresa? @relation(fields: [idEmpresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "usuario_id_empresa_foreign")
+
+  @@index([idEmpresa], map: "usuario_id_empresa_index")
+  @@map("usuario")
+}
+
+model Articulo {
+  id                BigInt
+  codigo_interno    Int
+  codigo_barra      String?    @db.VarChar(20)
+  id_rubro          Int?
+  id_proveedor      Int?
+  id_marca          Int?
+  id_ubicacion      Int?
+  id_empresa        Int
+  nombre            String     @db.VarChar(100)
+  precio1           Decimal?   @db.Decimal(10, 0)
+  precio2           Decimal?   @db.Decimal(10, 0)
+  precio3           Decimal?   @db.Decimal(10, 0)
+  no_procesado      Int        @db.TinyInt
+  oferta            Boolean
+  aparece_en_csv    Boolean
+  logo_url          String?    @db.VarChar(255)
+  video_url         String?    @db.VarChar(255)
+  codigo_proveedor  String?    @db.VarChar(200)
+  tiene_existencia  Boolean    @default(false)
+  existencia        Int
+  minima_existencia Int?
+  maxima_existencia Int?
+  abreviatura       String?    @db.VarChar(40)
+  unidad_medida     String?    @db.VarChar(100)
+  actualizado_en    DateTime?  @db.Date
+  empresa           Empresa    @relation(fields: [id_empresa], references: [id], map: "articulo_id_empresa")
+  marca             Marca?     @relation(fields: [id_marca, id_empresa], references: [id, id_empresa], onDelete: Restrict, onUpdate: Cascade, map: "fk_articulo_marca")
+  proveedor         Proveedor? @relation(fields: [id_proveedor, id_empresa], references: [id, id_empresa], onDelete: Restrict, onUpdate: Cascade, map: "fk_articulo_proveedor")
+  rubro             Rubro?     @relation(fields: [id_rubro, id_empresa], references: [id, id_empresa], onDelete: Restrict, onUpdate: Cascade, map: "fk_articulo_rubro")
+  ubicacion         Ubicacion? @relation(fields: [id_ubicacion, id_empresa], references: [id, id_empresa], onDelete: Restrict, onUpdate: Cascade, map: "fk_articulo_ubicacion")
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "articulo_id_empresa")
+  @@index([id_marca, id_empresa], map: "fk_articulo_marca")
+  @@index([id_proveedor, id_empresa], map: "fk_articulo_proveedor")
+  @@index([id_rubro, id_empresa], map: "fk_articulo_rubro")
+  @@index([id_ubicacion, id_empresa], map: "fk_articulo_ubicacion")
+  @@map("articulo")
+}
+
+model Equipo {
+  id            Int          @db.UnsignedInt
+  id_empresa    Int
+  marca         String?      @db.VarChar(150)
+  modelo        String?      @db.VarChar(150)
+  nombre_equipo String?      @db.VarChar(150)
+  createdAt     DateTime?    @map("created_at") @db.Date
+  nro_serie     String?      @db.VarChar(100)
+  cuil          String?      @db.VarChar(30)
+  empresa       Empresa      @relation(fields: [id_empresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "equipo_id_empresa_foreign")
+  cliente       Cliente?     @relation(fields: [cuil, id_empresa], references: [cuil, idEmpresa], onDelete: Restrict, onUpdate: NoAction, map: "equipo_cuil_id_empresa_foreign")
+  movimiento    Movimiento[]
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "equipo_id_empresa_index")
+  @@index([cuil, id_empresa], map: "equipo_cuil_id_empresa_index")
+  @@map("equipo")
+}
+
+model Externo {
+  id         Int     @id @default(autoincrement())
+  contrasena String  @db.VarChar(255)
+  id_empresa Int
+  empresa    Empresa @relation(fields: [id_empresa], references: [id], onDelete: Cascade, map: "fk_externo_empresa")
+
+  @@index([id_empresa], map: "fk_externo_empresa")
+  @@map("externo")
+}
+
+model Horario {
+  id            Int      @id @default(autoincrement())
+  id_empresa    Int
+  dia_semana    Int      @db.TinyInt
+  hora_apertura DateTime @db.Time(0)
+  hora_cierre   DateTime @db.Time(0)
+  empresa       Empresa  @relation(fields: [id_empresa], references: [id], onDelete: Cascade, map: "fk_horarios_empresa_empresa")
+
+  @@index([id_empresa], map: "fk_horarios_empresa_empresa")
+  @@map("horarios_empresa")
+}
+
+model Interno {
+  id         Int     @id @default(autoincrement())
+  contrasena String  @db.VarChar(255)
+  id_empresa Int     @unique(map: "uq_interno_empresa")
+  empresa    Empresa @relation(fields: [id_empresa], references: [id], onDelete: Cascade, map: "fk_interno_empresa")
+
+  @@map("interno")
+}
+
+model Marca {
+  id             Int
+  id_empresa     Int
+  nombre         String     @db.VarChar(255)
+  abreviatura    String?    @db.VarChar(30)
+  logo_url       String?    @db.VarChar(255)
+  aparece_en_csv Boolean
+  articulo       Articulo[]
+  empresa        Empresa    @relation(fields: [id_empresa], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_marca_empresa")
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "fk_marca_empresa")
+  @@map("marca")
+}
+
+model Movimiento {
+  id          Int       @id @db.UnsignedInt
+  id_empresa  Int
+  id_equipo   Int       @db.UnsignedInt
+  estado      String?   @db.VarChar(150)
+  fecha       DateTime? @db.Date
+  observacion String?   @db.Text
+  seenAt      DateTime? @map("seen_at") @db.DateTime(0)
+  // Retained legacy field; movement CRUD does not read or write it.
+  contrasena  String?   @db.VarChar(255)
+  equipo      Equipo    @relation(fields: [id_equipo, id_empresa], references: [id, id_empresa], onDelete: Cascade, onUpdate: NoAction, map: "movimiento_equipo_empresa_foreign")
+  empresa     Empresa   @relation(fields: [id_empresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "movimiento_id_empresa_foreign")
+
+  @@index([id_equipo, id_empresa], map: "movimiento_equipo_empresa_foreign")
+  @@index([id_empresa], map: "movimiento_id_empresa_index")
+  @@index([id_equipo], map: "movimiento_id_equipo_index")
+  @@map("movimiento")
+}
+
+model Proveedor {
+  id             Int
+  id_empresa     Int
+  nombre         String     @db.VarChar(255)
+  abreviatura    String?    @db.VarChar(30)
+  logo_url       String?    @db.VarChar(255)
+  aparece_en_csv Boolean
+  articulo       Articulo[]
+  empresa        Empresa    @relation(fields: [id_empresa], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_proveedor_empresa")
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "fk_proveedor_empresa")
+  @@map("proveedor")
+}
+
+model Rubro {
+  id             Int
+  nombre         String     @db.VarChar(80)
+  abreviatura    String?    @db.VarChar(30)
+  id_empresa     Int
+  aparece_en_csv Boolean?   @default(true)
+  logo_url       String?    @db.VarChar(255)
+  articulo       Articulo[]
+  empresa        Empresa    @relation(fields: [id_empresa], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Rubro_ibfk_1")
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "id_empresa")
+  @@map("rubro")
+}
+
+model Ubicacion {
+  id          Int
+  id_empresa  Int
+  descripcion String     @db.VarChar(50)
+  articulo    Articulo[]
+  empresa     Empresa    @relation(fields: [id_empresa], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ubicacion_empresa")
+
+  @@id([id, id_empresa])
+  @@index([id_empresa], map: "fk_ubicacion_empresa")
+  @@map("ubicacion")
+}
+
+enum Rol {
+  SUPERADMIN @map("Superadmin")
+  ADMIN      @map("Admin")
+  INTERNO    @map("Interno")
+
+  @@map("usuario_role")
+}

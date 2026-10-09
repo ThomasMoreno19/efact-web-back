@@ -1,0 +1,6 @@
+ALTER TABLE `cliente`
+  DROP PRIMARY KEY,
+  DROP COLUMN `id`,
+  MODIFY COLUMN `cuil` VARCHAR(30) NOT NULL,
+  ADD COLUMN `saldo` INTEGER NULL,
+  ADD PRIMARY KEY (`cuil`, `id_empresa`);

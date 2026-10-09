@@ -1,0 +1,4 @@
+ALTER TABLE `cliente`
+  ADD COLUMN `domicilio` VARCHAR(255) NULL,
+  ADD COLUMN `localidad` VARCHAR(150) NULL,
+  ADD COLUMN `telefonos` VARCHAR(255) NULL;
