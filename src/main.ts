@@ -18,7 +18,7 @@ async function bootstrap() {
   app.useGlobalFilters(
     new ApplicationExceptionFilter(),
     new DomainValidationExceptionFilter(),
-    new PrismaSchemaCompatibilityFilter(),
+    new PrismaSchemaCompatibilityFilter(app.getHttpAdapter()),
   );
   app.use(cookieParser());
   await app.listen(process.env.PORT ?? 3000);

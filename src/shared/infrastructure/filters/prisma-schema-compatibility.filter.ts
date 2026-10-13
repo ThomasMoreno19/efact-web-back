@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, Logger } from '@nestjs/common';
+import type { HttpServer } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import type { Response } from 'express';
 import { Prisma } from '@prisma/client';
@@ -8,6 +9,10 @@ import { isDatabaseSchemaCompatibilityError } from '../prisma/is-database-schema
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaSchemaCompatibilityFilter extends BaseExceptionFilter {
   private readonly logger = new Logger(PrismaSchemaCompatibilityFilter.name);
+
+  constructor(applicationRef: HttpServer) {
+    super(applicationRef);
+  }
 
   catch(
     exception: Prisma.PrismaClientKnownRequestError,
