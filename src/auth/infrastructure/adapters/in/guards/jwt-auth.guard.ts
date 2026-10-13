@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -9,6 +10,7 @@ import type { Request } from 'express';
 import { GetSessionCommand } from '../../../../application/use-cases/get-session/get-session.command';
 import type { AuthSession } from '../../../../application/use-cases/get-session/get-session.use-case';
 import { GetSessionUseCase } from '../../../../application/use-cases/get-session/get-session.use-case';
+import { Role } from '@/usuario/domain/role.enum';
 import { IS_PUBLIC_KEY } from '@/shared/infrastructure/adapters/in/decorators/public.decorator';
 
 export interface AuthenticatedRequest extends Request {
@@ -36,7 +38,35 @@ export class JwtAuthGuard implements CanActivate {
     const token = cookieToken ?? match?.[1]?.trim();
     if (!token) throw new UnauthorizedException();
 
-    request.user = await this.getSession.execute(new GetSessionCommand(token));
+    const session = await this.getSession.execute(new GetSessionCommand(token));
+    if (
+      session.role === Role.ADMIN &&
+      !canAccessCompany(request, session.id_empresa)
+    ) {
+      throw new ForbiddenException();
+    }
+    request.user = session;
     return true;
   }
+}
+
+function canAccessCompany(
+  request: AuthenticatedRequest,
+  idEmpresa: number | null,
+) {
+  const requestPath = request.path.replace(/\/+$/, '') || '/';
+  if (requestPath === '/auth/session' || requestPath === '/auth/logout') {
+    return true;
+  }
+  if (idEmpresa === null) return false;
+  if (request.method === 'DELETE' && /^\/empresas\/\d+$/.test(requestPath)) {
+    return false;
+  }
+
+  const routeParams = request.params as Record<string, string | undefined>;
+  const companyId =
+    routeParams.idEmpresa ??
+    routeParams.empresaId ??
+    (requestPath.startsWith('/empresas/') ? routeParams.id : undefined);
+  return companyId !== undefined && Number(companyId) === idEmpresa;
 }

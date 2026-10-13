@@ -29,6 +29,7 @@ model Empresa {
   catalogoHabilitado      Boolean      @default(false) @map("catalogo_habilitado")
   saldosHabilitados       Boolean      @default(false) @map("saldos_habilitados")
   reparacionesHabilitadas Boolean      @default(false) @map("reparaciones_habilitadas")
+  mostrarNavegacionPaginas Boolean      @default(true) @map("mostrar_navegacion_paginas")
   articulo                Articulo[]
   equipo                  Equipo[]
   externo                 Externo[]
@@ -183,7 +184,7 @@ model Marca {
 }
 
 model Movimiento {
-  id          Int       @id @db.UnsignedInt
+  id          Int       @db.UnsignedInt
   id_empresa  Int
   id_equipo   Int       @db.UnsignedInt
   estado      String?   @db.VarChar(150)
@@ -195,6 +196,7 @@ model Movimiento {
   equipo      Equipo    @relation(fields: [id_equipo, id_empresa], references: [id, id_empresa], onDelete: Cascade, onUpdate: NoAction, map: "movimiento_equipo_empresa_foreign")
   empresa     Empresa   @relation(fields: [id_empresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "movimiento_id_empresa_foreign")
 
+  @@id([id, id_empresa])
   @@index([id_equipo, id_empresa], map: "movimiento_equipo_empresa_foreign")
   @@index([id_empresa], map: "movimiento_id_empresa_index")
   @@index([id_equipo], map: "movimiento_id_equipo_index")

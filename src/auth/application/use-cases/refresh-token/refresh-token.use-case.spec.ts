@@ -12,10 +12,10 @@ import { RefreshTokenUseCase } from './refresh-token.use-case';
 describe('RefreshTokenUseCase', () => {
   const usuario = Usuario.rehydrate({
     id: 7,
-    nombre: 'root',
+    nombre: 'interno',
     passwordHash: 'password-hash',
-    role: Role.SUPERADMIN,
-    id_empresa: null,
+    role: Role.INTERNO,
+    id_empresa: 3,
     refreshTokenHash: 'current-refresh-hash',
   });
   const findById = jest.fn<Promise<Usuario | null>, [number]>();
@@ -46,7 +46,7 @@ describe('RefreshTokenUseCase', () => {
     jest.clearAllMocks();
   });
 
-  it('rotates a valid refresh token and stores only its hash', async () => {
+  it('rotates a valid internal refresh token and stores only its hash', async () => {
     findById.mockResolvedValue(usuario);
     verifyRefreshToken.mockResolvedValue(7);
     matches.mockReturnValue(true);

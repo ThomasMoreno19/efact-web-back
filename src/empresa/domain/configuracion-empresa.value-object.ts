@@ -6,6 +6,7 @@ export type ConfiguracionEmpresaData = {
   catalogoHabilitado: boolean;
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
+  mostrarNavegacionPaginas: boolean;
   imagenesEnArticulos: boolean;
   incluirHorarios: boolean;
   pedidosFueraHorario: boolean;
@@ -23,6 +24,7 @@ export class ConfiguracionEmpresa {
     private readonly _catalogoHabilitado: boolean,
     private readonly _saldosHabilitados: boolean,
     private readonly _reparacionesHabilitadas: boolean,
+    private readonly _mostrarNavegacionPaginas: boolean,
     private readonly _imagenesEnArticulos: boolean,
     private readonly _incluirHorarios: boolean,
     private readonly _pedidosFueraHorario: boolean,
@@ -43,6 +45,7 @@ export class ConfiguracionEmpresa {
       data.catalogoHabilitado ?? data.tieneCarrito ?? false,
       data.saldosHabilitados ?? false,
       data.reparacionesHabilitadas ?? false,
+      data.mostrarNavegacionPaginas ?? true,
       data.imagenesEnArticulos ?? true,
       data.incluirHorarios ?? false,
       data.pedidosFueraHorario ?? false,
@@ -59,6 +62,7 @@ export class ConfiguracionEmpresa {
       data.catalogoHabilitado,
       data.saldosHabilitados,
       data.reparacionesHabilitadas,
+      data.mostrarNavegacionPaginas,
       data.imagenesEnArticulos,
       data.incluirHorarios,
       data.pedidosFueraHorario,
@@ -77,6 +81,8 @@ export class ConfiguracionEmpresa {
       saldosHabilitados: data.saldosHabilitados ?? this._saldosHabilitados,
       reparacionesHabilitadas:
         data.reparacionesHabilitadas ?? this._reparacionesHabilitadas,
+      mostrarNavegacionPaginas:
+        data.mostrarNavegacionPaginas ?? this._mostrarNavegacionPaginas,
       imagenesEnArticulos:
         data.imagenesEnArticulos ?? this._imagenesEnArticulos,
       incluirHorarios: data.incluirHorarios ?? this._incluirHorarios,
@@ -112,6 +118,10 @@ export class ConfiguracionEmpresa {
 
   get reparacionesHabilitadas(): boolean {
     return this._reparacionesHabilitadas;
+  }
+
+  get mostrarNavegacionPaginas(): boolean {
+    return this._mostrarNavegacionPaginas;
   }
 
   get imagenesEnArticulos(): boolean {

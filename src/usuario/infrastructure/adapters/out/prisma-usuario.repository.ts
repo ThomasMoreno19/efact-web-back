@@ -28,6 +28,14 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     return usuario ? PrismaUsuarioMapper.toDomain(usuario) : null;
   }
 
+  async findAdminByEmpresa(idEmpresa: number): Promise<Usuario | null> {
+    const usuario = await this.prisma.usuario.findFirst({
+      where: { idEmpresa, role: PrismaRol.ADMIN },
+      orderBy: { id: 'asc' },
+    });
+    return usuario ? PrismaUsuarioMapper.toDomain(usuario) : null;
+  }
+
   async findInternosByEmpresa(idEmpresa: number): Promise<Usuario[]> {
     const usuarios = await this.prisma.usuario.findMany({
       where: { idEmpresa, role: PrismaRol.INTERNO },

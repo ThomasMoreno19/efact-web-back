@@ -6,6 +6,7 @@ export interface UsuarioRepository {
   findAll(): Promise<Usuario[]>;
   findById(id: number): Promise<Usuario | null>;
   findByNombre(nombre: string): Promise<Usuario | null>;
+  findAdminByEmpresa(idEmpresa: number): Promise<Usuario | null>;
   findInternosByEmpresa(idEmpresa: number): Promise<Usuario[]>;
   create(usuario: Usuario): Promise<Usuario>;
   update(id: number, usuario: Usuario): Promise<Usuario | null>;

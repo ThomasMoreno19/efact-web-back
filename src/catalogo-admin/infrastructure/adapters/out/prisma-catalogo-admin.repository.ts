@@ -32,6 +32,12 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
             ...(filters?.codigoProveedor
               ? [{ codigo_proveedor: { contains: filters.codigoProveedor } }]
               : []),
+            ...(filters?.codigoInterno !== undefined
+              ? [{ codigo_interno: filters.codigoInterno }]
+              : []),
+            ...(filters?.codigoBarra
+              ? [{ codigo_barra: filters.codigoBarra }]
+              : []),
             ...(filters?.articuloIds?.length
               ? [{ id: { in: filters.articuloIds } }]
               : []),
@@ -67,10 +73,7 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
 
         if (filters?.codigoInterno !== undefined) {
           const articulo = await this.prisma.articulo.findFirst({
-            where: {
-              id_empresa: empresaId,
-              codigo_interno: filters.codigoInterno,
-            },
+            where,
             orderBy: { id: 'asc' },
             select,
           });

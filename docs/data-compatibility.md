@@ -9,7 +9,8 @@ Consultar estas notas al cambiar el esquema, las migraciones o el tratamiento de
 - El esquema legado tiene claves foráneas MySQL no estándar `articulo.id_marca → marca.id` y `articulo.id_proveedor → proveedor.id`, que apuntan a columnas no únicas individualmente y no pueden expresarse en el schema validable de Prisma. Revisar su tratamiento en cualquier migración que afecte esas tablas.
 - En los datos legados locales, `equipo.fecha_creacion` usaba formato `D/M/YYYY` y las cadenas vacías representaban ausencia. No asumir que Web Hosting tiene el mismo formato; verificar sus datos antes de migrar.
 - El vínculo equipo-cliente usa `equipo.cuil` junto con `id_empresa`, que referencia la clave compuesta de `cliente`, y es opcional. El cliente correspondiente a un `movimiento` se determina a través de su equipo; no inferir ni reconstruir asociaciones desde snapshots históricos de nombre o CUIL, que pueden no coincidir con el cliente actualmente asignado.
-- `usuario.refresh_token` guarda solamente el hash SHA-256 del refresh token vigente. Es nullable para conservar las cuentas existentes; el login lo completa y logout lo limpia.
+- Los identificadores importados de `articulo`, `equipo` y `movimiento` pertenecen a cada empresa y pueden repetirse entre empresas. Las consultas, actualizaciones e importaciones deben resolverlos junto con `id_empresa`.
+- `usuario.refresh_token` guarda solamente el hash SHA-256 del refresh token vigente de usuarios Admin e Interno. Es nullable para conservar las cuentas existentes; los logins Admin e Interno lo completan, el login Superadmin lo limpia y logout lo limpia.
 
 ## Semántica temporal
 

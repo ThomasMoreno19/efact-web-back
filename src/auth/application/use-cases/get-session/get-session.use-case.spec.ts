@@ -1,6 +1,8 @@
 /// <reference types="jest" />
 
 import type { UsuarioRepository } from '@/usuario/application/ports/usuario.repository';
+import type { EmpresaRepository } from '@/empresa/application/ports/empresa.repository';
+import type { Empresa } from '@/empresa/domain/empresa.entity';
 import { Role } from '@/usuario/domain/role.enum';
 import { Usuario } from '@/usuario/domain/usuario.entity';
 import type { AuthTokenProvider } from '../../ports/auth-token-provider';
@@ -18,7 +20,11 @@ describe('GetSessionUseCase', () => {
   });
   const findById = jest.fn<Promise<Usuario | null>, [number]>();
   const findByNombre = jest.fn<Promise<Usuario | null>, [string]>();
+  const findEmpresaById = jest.fn<Promise<Empresa | null>, [number]>();
   const usuarios = { findById, findByNombre } as unknown as UsuarioRepository;
+  const empresas = {
+    findById: findEmpresaById,
+  } as unknown as EmpresaRepository;
   const issueAccessToken = jest.fn<Promise<string>, [number]>();
   const issueRefreshToken = jest.fn<Promise<string>, [number]>();
   const verifyAccessToken = jest.fn<Promise<number | null>, [string]>();
@@ -31,7 +37,7 @@ describe('GetSessionUseCase', () => {
     accessTokenExpiresInSeconds: 900,
     refreshTokenExpiresInSeconds: 604_800,
   } as AuthTokenProvider;
-  const useCase = new GetSessionUseCase(usuarios, tokens);
+  const useCase = new GetSessionUseCase(usuarios, empresas, tokens);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -43,7 +49,13 @@ describe('GetSessionUseCase', () => {
 
     await expect(
       useCase.execute(new GetSessionCommand('signed-token')),
-    ).resolves.toEqual({ id: 7, nombre: 'root', role: Role.SUPERADMIN });
+    ).resolves.toEqual({
+      id: 7,
+      nombre: 'root',
+      role: Role.SUPERADMIN,
+      id_empresa: null,
+      empresaSlug: null,
+    });
   });
 
   it('rejects invalid tokens', async () => {
@@ -55,7 +67,7 @@ describe('GetSessionUseCase', () => {
     expect(findById).not.toHaveBeenCalled();
   });
 
-  it('rejects users who are missing or no longer superadmins', async () => {
+  it('rejects users who are missing', async () => {
     verifyAccessToken.mockResolvedValue(7);
     findById.mockResolvedValue(null);
 

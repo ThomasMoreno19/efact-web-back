@@ -61,6 +61,8 @@ describe('JwtAuthGuard', () => {
       id: 1,
       nombre: 'admin',
       role: Role.SUPERADMIN,
+      id_empresa: null,
+      empresaSlug: null,
     };
     const request = {
       headers: { authorization: 'Bearer signed-token' },

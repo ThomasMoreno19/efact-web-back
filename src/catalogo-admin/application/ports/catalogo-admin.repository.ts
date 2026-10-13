@@ -35,6 +35,7 @@ export interface CatalogoRegistroActualizacion {
 export interface CatalogoBusquedaPublica {
   codigoProveedor?: string;
   codigoInterno?: number;
+  codigoBarra?: string;
   articuloIds?: bigint[];
   soloOfertas?: boolean;
   marcaIds?: number[];

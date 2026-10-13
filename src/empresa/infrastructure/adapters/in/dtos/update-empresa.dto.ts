@@ -57,6 +57,10 @@ export class UpdateEmpresaDto {
   @IsBoolean()
   reparacionesHabilitadas?: boolean;
 
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  mostrarNavegacionPaginas?: boolean;
+
   @ValidateIf(
     (_object, value: unknown) => value !== undefined && value !== null,
   )

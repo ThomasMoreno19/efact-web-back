@@ -1,7 +1,10 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
-import { ExcelImportDto } from './excel-import.dto';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ExcelCatalogImportMode } from '../../application/excel-import-mode';
 
-export class ExcelImportWithImagesDto extends ExcelImportDto {
+export class ExcelImportWithImagesDto {
+  @IsEnum(ExcelCatalogImportMode)
+  mode!: ExcelCatalogImportMode;
+
   @IsOptional()
   @IsString()
   @MaxLength(20_000_000)

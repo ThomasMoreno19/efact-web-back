@@ -47,6 +47,7 @@ export class CatalogoPublicoController {
     @Query('search') searchValue?: string,
     @Query('codigoProveedor') codigoProveedorValue?: string,
     @Query('codigoInterno') codigoInternoValue?: string,
+    @Query('codigoBarra') codigoBarraValue?: string,
     @Query('articuloId') articuloIdValue?: string | string[],
     @Query('marcaId') marcaIdValue?: string | string[],
     @Query('rubroId') rubroIdValue?: string | string[],
@@ -60,6 +61,7 @@ export class CatalogoPublicoController {
     const searchWords = parseSearchWords(searchValue);
     const codigoProveedor = parseCodigoProveedor(codigoProveedorValue);
     const codigoInterno = parseCodigoInterno(codigoInternoValue);
+    const codigoBarra = parseCodigoBarra(codigoBarraValue);
     const articuloIds = parseArticleIds(articuloIdValue);
     if (articuloIds.length > 0 && lista !== 'articulos') {
       throw new BadRequestException(
@@ -80,6 +82,7 @@ export class CatalogoPublicoController {
       {
         ...(isArticles && codigoProveedor ? { codigoProveedor } : {}),
         ...(isArticles && codigoInterno !== undefined ? { codigoInterno } : {}),
+        ...(isArticles && codigoBarra ? { codigoBarra } : {}),
         ...(articuloIds.length > 0 ? { articuloIds } : {}),
         ...(isArticles && marcaIds.length > 0 ? { marcaIds } : {}),
         ...(isArticles && rubroIds.length > 0 ? { rubroIds } : {}),
@@ -148,6 +151,14 @@ function parseCodigoInterno(value?: string) {
     throw new BadRequestException('El código interno no es válido.');
   }
   return parsed;
+}
+
+function parseCodigoBarra(value?: string) {
+  const codigo = value?.trim() ?? '';
+  if (codigo.length > 20) {
+    throw new BadRequestException('El código de barras no puede superar 20 caracteres.');
+  }
+  return codigo;
 }
 
 function parseFilterIds(value: string | string[] | undefined, label: string) {

@@ -6,6 +6,7 @@ import {
 import { EmpresaModule } from '@/empresa/infrastructure/empresa.module';
 import { CreateUsuarioUseCase } from '../application/use-cases/create-usuario/create-usuario.use-case';
 import { CreateInternoUseCase } from '../application/use-cases/create-interno/create-interno.use-case';
+import { FindAdminByEmpresaUseCase } from '../application/use-cases/find-admin-by-empresa/find-admin-by-empresa.use-case';
 import { FindInternosByEmpresaUseCase } from '../application/use-cases/find-internos-by-empresa/find-internos-by-empresa.use-case';
 import { DeleteUsuarioUseCase } from '../application/use-cases/delete-usuario/delete-usuario.use-case';
 import { FindAllUsuariosUseCase } from '../application/use-cases/find-all-usuarios/find-all-usuarios.use-case';
@@ -13,15 +14,22 @@ import { FindUsuarioByIdUseCase } from '../application/use-cases/find-usuario-by
 import { UpdateUsuarioUseCase } from '../application/use-cases/update-usuario/update-usuario.use-case';
 import { USUARIO_REPOSITORY } from '../application/ports/usuario.repository';
 import { UsuarioController } from './adapters/in/usuario.controller';
+import { UsuarioAdminEmpresaController } from './adapters/in/usuario-admin-empresa.controller';
 import { UsuarioInternoController } from './adapters/in/usuario-interno.controller';
 import { PrismaUsuarioRepository } from './adapters/out/prisma-usuario.repository';
 import { BcryptPasswordHasher } from '@/shared/infrastructure/security/bcrypt-password-hasher';
 import { PASSWORD_HASHER } from '@/shared/application/ports/password-hasher';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import { UpsertAdminByEmpresaUseCase } from '../application/use-cases/upsert-admin-by-empresa/upsert-admin-by-empresa.use-case';
+import { UpdateAdminCredentialsByEmpresaUseCase } from '../application/use-cases/update-admin-credentials-by-empresa/update-admin-credentials-by-empresa.use-case';
 
 @Module({
   imports: [EmpresaModule],
-  controllers: [UsuarioController, UsuarioInternoController],
+  controllers: [
+    UsuarioController,
+    UsuarioInternoController,
+    UsuarioAdminEmpresaController,
+  ],
   providers: [
     BcryptPasswordHasher,
     { provide: PASSWORD_HASHER, useExisting: BcryptPasswordHasher },
@@ -67,6 +75,37 @@ import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
         empresas: EmpresaRepository,
       ) => new FindInternosByEmpresaUseCase(usuarios, empresas),
       inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY],
+    },
+    {
+      provide: FindAdminByEmpresaUseCase,
+      useFactory: (
+        usuarios: PrismaUsuarioRepository,
+        empresas: EmpresaRepository,
+      ) => new FindAdminByEmpresaUseCase(usuarios, empresas),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY],
+    },
+    {
+      provide: UpsertAdminByEmpresaUseCase,
+      useFactory: (
+        usuarios: PrismaUsuarioRepository,
+        empresas: EmpresaRepository,
+        passwordHasher: BcryptPasswordHasher,
+      ) => new UpsertAdminByEmpresaUseCase(usuarios, empresas, passwordHasher),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY, PASSWORD_HASHER],
+    },
+    {
+      provide: UpdateAdminCredentialsByEmpresaUseCase,
+      useFactory: (
+        usuarios: PrismaUsuarioRepository,
+        empresas: EmpresaRepository,
+        passwordHasher: BcryptPasswordHasher,
+      ) =>
+        new UpdateAdminCredentialsByEmpresaUseCase(
+          usuarios,
+          empresas,
+          passwordHasher,
+        ),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY, PASSWORD_HASHER],
     },
     {
       provide: UpdateUsuarioUseCase,

@@ -53,6 +53,10 @@ export class CreateEmpresaDto {
   reparacionesHabilitadas?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  mostrarNavegacionPaginas?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(255)
   logo_url?: string | null;

@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ImportarExcelCatalogoUseCase } from '../application/use-cases/importar-excel-catalogo.use-case';
-import { ExcelImportMode } from '../application/excel-import-mode';
+import {
+  ExcelCatalogImportMode,
+  ExcelImportMode,
+} from '../application/excel-import-mode';
 import type { CatalogImportPlan } from '@/catalogo-admin/application/ports/catalogo-bulk-import.repository';
 import type { ClienteImportSet } from '@/cliente/application/ports/cliente-bulk-import.repository';
 import { ExcelWorkbookParser } from './excel-workbook.parser';
@@ -27,34 +30,40 @@ export class ExcelImportService {
   async import(
     empresaId: number,
     file: { buffer: Buffer; size: number; originalname?: string } | undefined,
-    mode: ExcelImportMode,
+    mode: ExcelCatalogImportMode,
   ) {
     const buffer = this.validateFile(file);
     await this.importCatalog.ensureImportEnabled(empresaId);
     const plan = await this.parser.parse(buffer);
-    return this.importCatalog.execute(
+    const result = await this.importCatalog.execute(
       empresaId,
-      toCatalogPlan(plan),
-      toClienteSet(plan),
-      mode,
+      toCatalogPlan(plan, mode),
+      toClienteSet(plan, mode),
+      toCatalogMode(mode),
     );
+    return { ...result, mode };
   }
 
   async previewAndImport(
     empresaId: number,
     file: { buffer: Buffer; size: number; originalname?: string } | undefined,
-    mode: ExcelImportMode,
+    mode: ExcelCatalogImportMode,
   ) {
     const buffer = this.validateFile(file);
     await this.importCatalog.ensureImportEnabled(empresaId);
     const plan = await this.parser.parse(buffer);
-    return this.importCatalog.execute(
+    const result = await this.importCatalog.execute(
       empresaId,
-      toCatalogPlan(plan),
-      toClienteSet(plan),
-      mode,
-      true,
+      toCatalogPlan(plan, mode),
+      toClienteSet(plan, mode),
+      toCatalogMode(mode),
+      mode !== ExcelCatalogImportMode.RUBRO &&
+        mode !== ExcelCatalogImportMode.MARCA &&
+        mode !== ExcelCatalogImportMode.PROVEEDOR &&
+        mode !== ExcelCatalogImportMode.UBICACION &&
+        mode !== ExcelCatalogImportMode.CLIENTE,
     );
+    return { ...result, mode };
   }
 
   private validateFile(
@@ -92,18 +101,56 @@ export class ExcelImportService {
 
 function toCatalogPlan(
   plan: Awaited<ReturnType<ExcelWorkbookParser['parse']>>,
+  mode: ExcelCatalogImportMode,
 ): CatalogImportPlan {
+  const all = selectsAll(mode);
   return {
-    articulo: plan.articulo,
-    proveedor: plan.proveedor,
-    rubro: plan.rubro,
-    marca: plan.marca,
-    ubicacion: plan.ubicacion,
+    articulo:
+      all || mode === ExcelCatalogImportMode.ARTICULO
+        ? plan.articulo
+        : { rows: [], deletedKeys: [] },
+    proveedor:
+      all || mode === ExcelCatalogImportMode.PROVEEDOR
+        ? plan.proveedor
+        : { rows: [], deletedKeys: [] },
+    rubro:
+      all || mode === ExcelCatalogImportMode.RUBRO
+        ? plan.rubro
+        : { rows: [], deletedKeys: [] },
+    marca:
+      all || mode === ExcelCatalogImportMode.MARCA
+        ? plan.marca
+        : { rows: [], deletedKeys: [] },
+    ubicacion:
+      all || mode === ExcelCatalogImportMode.UBICACION
+        ? plan.ubicacion
+        : { rows: [], deletedKeys: [] },
   };
 }
 
 function toClienteSet(
   plan: Awaited<ReturnType<ExcelWorkbookParser['parse']>>,
+  mode: ExcelCatalogImportMode,
 ): ClienteImportSet {
-  return plan.cliente;
+  return selectsAll(mode) || mode === ExcelCatalogImportMode.CLIENTE
+    ? plan.cliente
+    : { rows: [], deletedKeys: [] };
+}
+
+function selectsAll(mode: ExcelCatalogImportMode) {
+  return (
+    mode === ExcelCatalogImportMode.ACTUALIZAR ||
+    mode === ExcelCatalogImportMode.SINCRONIZAR ||
+    mode === ExcelCatalogImportMode.SINCRONIZAR_LEGACY ||
+    mode === ExcelCatalogImportMode.TODOS
+  );
+}
+
+function toCatalogMode(mode: ExcelCatalogImportMode): ExcelImportMode {
+  const isSynchronization =
+    mode === ExcelCatalogImportMode.SINCRONIZAR ||
+    mode === ExcelCatalogImportMode.SINCRONIZAR_LEGACY;
+  return isSynchronization
+    ? ExcelImportMode.SINCRONIZAR
+    : ExcelImportMode.ACTUALIZAR;
 }

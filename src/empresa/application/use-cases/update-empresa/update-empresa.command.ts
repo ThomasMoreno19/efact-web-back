@@ -17,5 +17,6 @@ export class UpdateEmpresaCommand {
     readonly catalogoHabilitado?: boolean,
     readonly saldosHabilitados?: boolean,
     readonly reparacionesHabilitadas?: boolean,
+    readonly mostrarNavegacionPaginas?: boolean,
   ) {}
 }

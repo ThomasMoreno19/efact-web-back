@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
+import {
+  EMPRESA_REPOSITORY,
+  type EmpresaRepository,
+} from '@/empresa/application/ports/empresa.repository';
+import { EmpresaModule } from '@/empresa/infrastructure/empresa.module';
 import { PASSWORD_HASHER } from '@/shared/application/ports/password-hasher';
 import { PrismaModule } from '@/shared/infrastructure/prisma/prisma.module';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
@@ -20,7 +25,7 @@ import { NestJwtTokenProvider } from './adapters/out/nest-jwt-token.provider';
 import { Sha256RefreshTokenHasher } from './adapters/out/sha256-refresh-token.hasher';
 
 @Module({
-  imports: [PrismaModule, JwtModule.register({})],
+  imports: [PrismaModule, EmpresaModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
@@ -40,18 +45,21 @@ import { Sha256RefreshTokenHasher } from './adapters/out/sha256-refresh-token.ha
       provide: LoginUseCase,
       useFactory: (
         repository: PrismaUsuarioRepository,
+        empresas: EmpresaRepository,
         passwordHasher: BcryptPasswordHasher,
         refreshTokenHasher: Sha256RefreshTokenHasher,
         tokenProvider: NestJwtTokenProvider,
       ) =>
         new LoginUseCase(
           repository,
+          empresas,
           passwordHasher,
           refreshTokenHasher,
           tokenProvider,
         ),
       inject: [
         USUARIO_REPOSITORY,
+        EMPRESA_REPOSITORY,
         PASSWORD_HASHER,
         REFRESH_TOKEN_HASHER,
         AUTH_TOKEN_PROVIDER,
@@ -82,9 +90,10 @@ import { Sha256RefreshTokenHasher } from './adapters/out/sha256-refresh-token.ha
       provide: GetSessionUseCase,
       useFactory: (
         repository: PrismaUsuarioRepository,
+        empresas: EmpresaRepository,
         tokenProvider: NestJwtTokenProvider,
-      ) => new GetSessionUseCase(repository, tokenProvider),
-      inject: [USUARIO_REPOSITORY, AUTH_TOKEN_PROVIDER],
+      ) => new GetSessionUseCase(repository, empresas, tokenProvider),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY, AUTH_TOKEN_PROVIDER],
     },
     {
       provide: RefreshTokenUseCase,

@@ -40,6 +40,7 @@ export class PrismaEmpresaMapper {
         catalogoHabilitado: empresa.catalogoHabilitado,
         saldosHabilitados: empresa.saldosHabilitados,
         reparacionesHabilitadas: empresa.reparacionesHabilitadas,
+        mostrarNavegacionPaginas: empresa.mostrarNavegacionPaginas,
         imagenesEnArticulos: empresa.imagenesEnArticulos,
         incluirHorarios: empresa.incluirHorarios,
         pedidosFueraHorario: empresa.pedidosFueraHorario,
@@ -63,6 +64,7 @@ export class PrismaEmpresaMapper {
       catalogoHabilitado: configuracion.catalogoHabilitado,
       saldosHabilitados: configuracion.saldosHabilitados,
       reparacionesHabilitadas: configuracion.reparacionesHabilitadas,
+      mostrarNavegacionPaginas: configuracion.mostrarNavegacionPaginas,
       logoUrl: empresa.logo_url,
       ...(empresa.fecha_creacion
         ? { createdAt: parseArgentinaDate(empresa.fecha_creacion) }

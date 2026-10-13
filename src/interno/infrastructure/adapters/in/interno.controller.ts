@@ -17,6 +17,9 @@ import { LogoutUseCase } from '@/auth/application/use-cases/logout/logout.use-ca
 import { Public } from '@/shared/infrastructure/adapters/in/decorators/public.decorator';
 import { FindCatalogoInternoPageUseCase } from '../../../application/use-cases/find-catalogo-interno-page.use-case';
 import { FindSaldosInternosUseCase } from '../../../application/use-cases/find-saldos-internos.use-case';
+import type {
+  CatalogoInternoLista,
+} from '../../../application/ports/interno.repository';
 import {
   InternoAuthGuard,
   type InternalRequest,
@@ -48,11 +51,31 @@ export class InternoController {
     @Param('idEmpresa', ParseIntPipe) idEmpresa: number,
     @Query('offset') offsetValue?: string,
     @Query('limit') limitValue?: string,
+    @Query('lista') listaValue?: string,
+    @Query('search') searchValue?: string,
+    @Query('codigoProveedor') codigoProveedorValue?: string,
+    @Query('codigoInterno') codigoInternoValue?: string,
+    @Query('codigoBarra') codigoBarraValue?: string,
+    @Query('marcaId') marcaIdsValue?: string | string[],
+    @Query('rubroId') rubroIdsValue?: string | string[],
+    @Query('proveedorId') proveedorIdsValue?: string | string[],
+    @Query('ubicacionId') ubicacionIdsValue?: string | string[],
   ) {
     const page = await this.findCatalogoPage.execute(
       idEmpresa,
       parseOffset(offsetValue),
       parseLimit(limitValue),
+      {
+        lista: parseCatalogoLista(listaValue),
+        searchWords: parseSearchWords(searchValue),
+        codigoProveedor: parseCodigoProveedor(codigoProveedorValue),
+        codigoInterno: parseCodigoInterno(codigoInternoValue),
+        codigoBarra: parseCodigoBarra(codigoBarraValue),
+        marcaIds: parseFilterIds(marcaIdsValue, 'marca'),
+        rubroIds: parseFilterIds(rubroIdsValue, 'rubro'),
+        proveedorIds: parseFilterIds(proveedorIdsValue, 'proveedor'),
+        ubicacionIds: parseFilterIds(ubicacionIdsValue, 'ubicación'),
+      },
     );
     if (!page) throw new NotFoundException();
     return page;
@@ -64,6 +87,74 @@ export class InternoController {
     if (!saldos) throw new NotFoundException();
     return saldos;
   }
+}
+
+function parseCatalogoLista(value?: string): CatalogoInternoLista {
+  const lista = value ?? 'articulos';
+  if (
+    lista === 'articulos' ||
+    lista === 'marcas' ||
+    lista === 'rubros' ||
+    lista === 'ofertas' ||
+    lista === 'proveedores' ||
+    lista === 'ubicaciones'
+  ) {
+    return lista;
+  }
+  throw new BadRequestException('La lista del catálogo interno no es válida.');
+}
+
+function parseSearchWords(value?: string) {
+  if (value === undefined || value.trim() === '') return [];
+  if (value.length > 100) {
+    throw new BadRequestException('La búsqueda no puede superar 100 caracteres.');
+  }
+  return value.trim().split(/\s+/);
+}
+
+function parseCodigoProveedor(value?: string) {
+  const codigo = value?.trim() ?? '';
+  if (codigo.length > 200) {
+    throw new BadRequestException('El código de proveedor no puede superar 200 caracteres.');
+  }
+  return codigo;
+}
+
+function parseCodigoInterno(value?: string) {
+  const codigo = value?.trim() ?? '';
+  if (!codigo) return undefined;
+  if (!/^\d+$/.test(codigo)) {
+    throw new BadRequestException('El código interno debe ser numérico.');
+  }
+  const parsed = Number(codigo);
+  if (!Number.isInteger(parsed) || parsed > 2_147_483_647) {
+    throw new BadRequestException('El código interno no es válido.');
+  }
+  return parsed;
+}
+
+function parseCodigoBarra(value?: string) {
+  const codigo = value?.trim() ?? '';
+  if (codigo.length > 20) {
+    throw new BadRequestException('El código de barras no puede superar 20 caracteres.');
+  }
+  return codigo;
+}
+
+function parseFilterIds(value: string | string[] | undefined, label: string) {
+  const values = value === undefined ? [] : Array.isArray(value) ? value : [value];
+  const parsed = values.map(Number);
+  if (
+    values.some(
+      (id, index) =>
+        !/^\d+$/.test(id) ||
+        !Number.isSafeInteger(parsed[index]) ||
+        parsed[index] > 2_147_483_647,
+    )
+  ) {
+    throw new BadRequestException(`Los filtros de ${label} no son válidos.`);
+  }
+  return [...new Set(parsed)];
 }
 
 function parseOffset(value?: string) {

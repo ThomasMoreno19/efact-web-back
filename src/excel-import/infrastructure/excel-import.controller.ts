@@ -13,6 +13,7 @@ import {
   MAX_EXCEL_IMPORT_BYTES,
 } from './excel-import.service';
 import { ExcelImportDto } from './dtos/excel-import.dto';
+import { ExcelImportWithImagesDto } from './dtos/excel-import-with-images.dto';
 import {
   MAX_REPAIR_EXCEL_IMPORT_BYTES,
   RepairExcelImportService,
@@ -37,7 +38,7 @@ export class ExcelImportController {
   )
   importExcel(
     @Param('id', ParseIntPipe) empresaId: number,
-    @Body() dto: ExcelImportDto,
+    @Body() dto: ExcelImportWithImagesDto,
     @UploadedFile() file?: UploadedExcel,
   ) {
     return this.excelImport.import(empresaId, file, dto.mode);

@@ -12,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import type { AuthSession } from '../../../application/use-cases/get-session/get-session.use-case';
+import type { AdminLoginResult } from '../../../application/use-cases/login/login.use-case';
 import { LoginCommand } from '../../../application/use-cases/login/login.command';
 import type { LoginResult } from '../../../application/use-cases/login/login.use-case';
 import { LoginUseCase } from '../../../application/use-cases/login/login.use-case';
@@ -45,11 +46,12 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
-  ): Promise<void> {
+  ): Promise<Pick<AdminLoginResult, 'role' | 'empresaSlug'>> {
     const tokens = await this.loginUseCase.execute(
       new LoginCommand(dto.nombre, dto.contrasena),
     );
     this.setAuthCookies(response, tokens);
+    return { role: tokens.role, empresaSlug: tokens.empresaSlug };
   }
 
   @Post('login-interno')
@@ -108,12 +110,17 @@ export class AuthController {
       maxAge: tokens.accessTokenExpiresInSeconds * 1000,
       path: '/',
     });
-    response.cookie('refresh_token', tokens.refreshToken, {
-      httpOnly: true,
-      secure,
-      sameSite: 'lax',
-      maxAge: tokens.refreshTokenExpiresInSeconds * 1000,
-      path: '/auth/refresh',
-    });
+    if (
+      tokens.refreshToken &&
+      tokens.refreshTokenExpiresInSeconds !== undefined
+    ) {
+      response.cookie('refresh_token', tokens.refreshToken, {
+        httpOnly: true,
+        secure,
+        sameSite: 'lax',
+        maxAge: tokens.refreshTokenExpiresInSeconds * 1000,
+        path: '/auth/refresh',
+      });
+    }
   }
 }

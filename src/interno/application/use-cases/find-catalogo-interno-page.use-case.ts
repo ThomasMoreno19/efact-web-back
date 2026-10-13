@@ -1,5 +1,8 @@
 import type { EmpresaRepository } from '@/empresa/application/ports/empresa.repository';
-import type { InternoRepository } from '../ports/interno.repository';
+import type {
+  CatalogoInternoFiltros,
+  InternoRepository,
+} from '../ports/interno.repository';
 
 export class FindCatalogoInternoPageUseCase {
   constructor(
@@ -7,7 +10,12 @@ export class FindCatalogoInternoPageUseCase {
     private readonly empresas: EmpresaRepository,
   ) {}
 
-  async execute(idEmpresa: number, offset: number, limit: number) {
+  async execute(
+    idEmpresa: number,
+    offset: number,
+    limit: number,
+    filters: CatalogoInternoFiltros,
+  ) {
     const empresa = await this.empresas.findById(idEmpresa);
     if (!empresa?.configuracion.catalogoHabilitado) return null;
 
@@ -15,6 +23,7 @@ export class FindCatalogoInternoPageUseCase {
       idEmpresa,
       offset,
       limit,
+      filters,
     );
     return {
       ...page,

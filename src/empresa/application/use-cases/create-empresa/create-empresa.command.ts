@@ -17,5 +17,6 @@ export class CreateEmpresaCommand {
     readonly saldosHabilitados?: boolean,
     readonly reparacionesHabilitadas?: boolean,
     readonly habilitarExcel?: boolean,
+    readonly mostrarNavegacionPaginas?: boolean,
   ) {}
 }

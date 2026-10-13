@@ -80,8 +80,8 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
   }
 
   async findById(idEmpresa: number, id: number): Promise<Movimiento | null> {
-    const movimiento = await this.prisma.movimiento.findFirst({
-      where: { id, id_empresa: idEmpresa },
+    const movimiento = await this.prisma.movimiento.findUnique({
+      where: { id_id_empresa: { id, id_empresa: idEmpresa } },
       select: movimientoSelect,
     });
     return movimiento ? PrismaMovimientoMapper.toDomain(movimiento) : null;
@@ -182,7 +182,7 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
       if (result.count === 0) return null;
 
       const updated = await this.prisma.movimiento.findUnique({
-        where: { id },
+        where: { id_id_empresa: { id, id_empresa: idEmpresa } },
         select: movimientoSelect,
       });
       return updated ? PrismaMovimientoMapper.toDomain(updated) : null;

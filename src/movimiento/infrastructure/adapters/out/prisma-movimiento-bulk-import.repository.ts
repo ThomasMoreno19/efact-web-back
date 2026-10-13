@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import type { ImportTransactionContext } from '@/shared/application/ports/import-unit-of-work';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import { toPrismaImportTransaction } from '@/shared/infrastructure/prisma/prisma-import-unit-of-work';
-import { MovimientoImportIdExistenteException } from '../../../application/exceptions/movimiento-import-id-existente.exception';
 import type {
   MovimientoBulkImportRepository,
   MovimientoImportMode,
@@ -30,9 +29,6 @@ export class PrismaMovimientoBulkImportRepository implements MovimientoBulkImpor
     context: ImportTransactionContext,
   ) {
     const transaction = toPrismaImportTransaction(context);
-    const movementIds = rows.map(({ value }) => value.idMovimiento);
-    await this.ensureIdsBelongToEmpresa(transaction, empresaId, movementIds);
-
     const values: Record<string, SqlValue>[] = rows.map(({ value }) => ({
       id: value.idMovimiento,
       id_empresa: empresaId,
@@ -52,22 +48,6 @@ export class PrismaMovimientoBulkImportRepository implements MovimientoBulkImpor
       );
     }
     return { processed: rows.length, deleted };
-  }
-
-  private async ensureIdsBelongToEmpresa(
-    transaction: Prisma.TransactionClient,
-    empresaId: number,
-    ids: number[],
-  ) {
-    for (const batch of chunks(ids, BATCH_SIZE)) {
-      const conflicts = await transaction.movimiento.findMany({
-        where: { id: { in: batch }, id_empresa: { not: empresaId } },
-        select: { id: true },
-      });
-      if (conflicts.length > 0) {
-        throw new MovimientoImportIdExistenteException();
-      }
-    }
   }
 
   private async deleteMissing(
