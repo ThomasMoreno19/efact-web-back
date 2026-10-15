@@ -78,6 +78,7 @@ export class EmpresaController {
   }
 
   @Get(':id/horarios')
+  @Public()
   findHorarios(@Param('id', ParseIntPipe) id: number) {
     return this.findHorariosEmpresa.execute(id);
   }

@@ -6,16 +6,31 @@ import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import { translatePrismaError } from '@/shared/infrastructure/prisma/translate-prisma-error';
 import { IdentificacionCliente } from '../../../domain/identificacion-cliente.value-object';
 import { PrismaClienteMapper } from './prisma-cliente.mapper';
+import { createHash } from 'node:crypto';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 
 @Injectable()
 export class PrismaClienteRepository implements ClienteRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   async findAll(idEmpresa: number): Promise<Cliente[]> {
-    const clientes = await this.prisma.cliente.findMany({
-      where: { idEmpresa },
-      orderBy: { cuil: 'asc' },
-    });
+    const clientes = await this.readCache.getOrLoad(
+      `clientes:${idEmpresa}:all`,
+      READ_CACHE_GROUPS.clientes(idEmpresa),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.prisma.cliente.findMany({
+          where: { idEmpresa },
+          orderBy: { cuil: 'asc' },
+        }),
+    );
     return clientes.map((cliente) => PrismaClienteMapper.toDomain(cliente));
   }
 
@@ -23,9 +38,16 @@ export class PrismaClienteRepository implements ClienteRepository {
     idEmpresa: number,
     cuil: IdentificacionCliente,
   ): Promise<Cliente | null> {
-    const cliente = await this.prisma.cliente.findUnique({
-      where: { cuil_idEmpresa: { cuil: cuil.valor, idEmpresa } },
-    });
+    const cuilKey = createHash('sha256').update(cuil.valor).digest('hex');
+    const cliente = await this.readCache.getOrLoad(
+      `clientes:${idEmpresa}:cuil:${cuilKey}`,
+      READ_CACHE_GROUPS.clientes(idEmpresa),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.prisma.cliente.findUnique({
+          where: { cuil_idEmpresa: { cuil: cuil.valor, idEmpresa } },
+        }),
+    );
     return cliente ? PrismaClienteMapper.toDomain(cliente) : null;
   }
 
@@ -34,6 +56,7 @@ export class PrismaClienteRepository implements ClienteRepository {
       const createdCliente = await this.prisma.cliente.create({
         data: PrismaClienteMapper.toPersistence(cliente),
       });
+      await this.readCache.invalidateCustomers(cliente.idEmpresa);
       return PrismaClienteMapper.toDomain(createdCliente);
     } catch (error) {
       translatePrismaError(error);
@@ -50,6 +73,7 @@ export class PrismaClienteRepository implements ClienteRepository {
         where: { cuil_idEmpresa: { cuil: cuil.valor, idEmpresa } },
         data: PrismaClienteMapper.toPersistence(cliente),
       });
+      await this.readCache.invalidateCustomers(idEmpresa);
       return PrismaClienteMapper.toDomain(updatedCliente);
     } catch (error) {
       if (
@@ -70,6 +94,7 @@ export class PrismaClienteRepository implements ClienteRepository {
       const result = await this.prisma.cliente.deleteMany({
         where: { cuil: cuil.valor, idEmpresa },
       });
+      if (result.count > 0) await this.readCache.invalidateCustomers(idEmpresa);
       return result.count > 0;
     } catch (error) {
       translatePrismaError(error, 'delete');

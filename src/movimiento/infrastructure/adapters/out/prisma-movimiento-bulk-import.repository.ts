@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { ImportTransactionContext } from '@/shared/application/ports/import-unit-of-work';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import { toPrismaImportTransaction } from '@/shared/infrastructure/prisma/prisma-import-unit-of-work';
 import type {
   MovimientoBulkImportRepository,
@@ -15,10 +20,18 @@ type SqlValue = string | number | bigint | boolean | Date | null;
 
 @Injectable()
 export class PrismaMovimientoBulkImportRepository implements MovimientoBulkImportRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   countByEmpresa(empresaId: number) {
-    return this.prisma.movimiento.count({ where: { id_empresa: empresaId } });
+    return this.readCache.getOrLoad(
+      `movimientos:${empresaId}:count`,
+      READ_CACHE_GROUPS.movimientos(empresaId),
+      READ_CACHE_TTL_MS,
+      () => this.prisma.movimiento.count({ where: { id_empresa: empresaId } }),
+    );
   }
 
   async import(

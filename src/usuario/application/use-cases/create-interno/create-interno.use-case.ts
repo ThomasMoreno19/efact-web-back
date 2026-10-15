@@ -13,12 +13,11 @@ export class CreateInternoUseCase {
     private readonly passwordHasher: PasswordHasher,
   ) {}
 
-  async execute(idEmpresa: number, nombre: string, contrasena: string) {
+  async execute(idEmpresa: number, contrasena: string) {
     const empresa = await this.empresas.findById(idEmpresa);
     if (!empresa) throw new EmpresaNotFoundException(idEmpresa);
 
     const usuario = Usuario.create({
-      nombre,
       passwordHash: await this.passwordHasher.hash(contrasena),
       role: Role.INTERNO,
       id_empresa: idEmpresa,

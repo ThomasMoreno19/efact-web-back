@@ -38,7 +38,7 @@ export class UsuarioInternoController {
     @Param('idEmpresa', ParseIntPipe) idEmpresa: number,
     @Body() dto: CreateInternoDto,
   ) {
-    return this.createInterno.execute(idEmpresa, dto.nombre, dto.contrasena);
+    return this.createInterno.execute(idEmpresa, dto.contrasena);
   }
 
   @Patch(':idUsuario')
@@ -48,14 +48,19 @@ export class UsuarioInternoController {
     @Body() dto: UpdateInternoDto,
   ) {
     await this.ensureInternoBelongsToEmpresa(idEmpresa, idUsuario);
-    if (dto.nombre === undefined && dto.contrasena === undefined) {
+    if (dto.contrasena === undefined) {
       throw new DomainValidationException(
-        'Ingresá al menos un dato para actualizar el usuario interno.',
+        'Ingresá una contraseña para actualizar el acceso interno.',
       );
     }
     return this.updateUsuario.execute(
       idUsuario,
-      new UpdateUsuarioCommand(dto.nombre, dto.contrasena, Role.INTERNO, idEmpresa),
+      new UpdateUsuarioCommand(
+        undefined,
+        dto.contrasena,
+        Role.INTERNO,
+        idEmpresa,
+      ),
     );
   }
 

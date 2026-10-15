@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { PASSWORD_HASHER } from '@/shared/application/ports/password-hasher';
 import { BcryptPasswordHasher } from '@/shared/infrastructure/security/bcrypt-password-hasher';
 import {
@@ -41,9 +42,9 @@ import { PrismaMovimientoBulkImportRepository } from './adapters/out/prisma-movi
     },
     {
       provide: MOVIMIENTO_REPOSITORY,
-      useFactory: (prisma: PrismaService) =>
-        new PrismaMovimientoRepository(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, readCache: ReadCacheService) =>
+        new PrismaMovimientoRepository(prisma, readCache),
+      inject: [PrismaService, ReadCacheService],
     },
     {
       provide: FindAllMovimientosUseCase,

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ImportarExcelReparacionesUseCase } from '../application/use-cases/importar-excel-reparaciones.use-case';
 import { ExcelImportMode } from '../application/excel-import-mode';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { RepairWorkbookParser } from './reparacion-workbook.parser';
 
 export const MAX_REPAIR_EXCEL_IMPORT_BYTES = 50 * 1024 * 1024;
@@ -10,6 +11,7 @@ export class RepairExcelImportService {
   constructor(
     private readonly parser: RepairWorkbookParser,
     private readonly importRepairs: ImportarExcelReparacionesUseCase,
+    private readonly readCache: ReadCacheService,
   ) {}
 
   async preview(
@@ -30,7 +32,9 @@ export class RepairExcelImportService {
     const buffer = this.validateFile(file);
     await this.importRepairs.ensureImportEnabled(empresaId);
     const plan = await this.parser.parse(buffer);
-    return this.importRepairs.execute(empresaId, plan, mode);
+    const result = await this.importRepairs.execute(empresaId, plan, mode);
+    await this.readCache.invalidateRepairImportData(empresaId);
+    return result;
   }
 
   private validateFile(

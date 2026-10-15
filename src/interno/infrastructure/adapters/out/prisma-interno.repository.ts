@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import type {
   CatalogoInternoArticulo,
   CatalogoInternoCategoria,
@@ -34,9 +39,49 @@ const INTERNAL_ARTICLE_SELECT = {
 
 @Injectable()
 export class PrismaInternoRepository implements InternoRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   async findCatalogoPage(
+    idEmpresa: number,
+    offset: number,
+    limit: number,
+    filters: CatalogoInternoFiltros,
+  ): Promise<CatalogoInternoPagina> {
+    const normalizedFilters = {
+      lista: filters.lista,
+      searchWords: filters.searchWords,
+      codigoProveedor: filters.codigoProveedor ?? null,
+      codigoInterno: filters.codigoInterno ?? null,
+      codigoBarra: filters.codigoBarra ?? null,
+      marcaIds: [...filters.marcaIds].sort((left, right) => left - right),
+      rubroIds: [...filters.rubroIds].sort((left, right) => left - right),
+      proveedorIds: [...filters.proveedorIds].sort(
+        (left, right) => left - right,
+      ),
+      ubicacionIds: [...filters.ubicacionIds].sort(
+        (left, right) => left - right,
+      ),
+    };
+    const cacheKey = `catalogo:interno:${JSON.stringify({
+      offset,
+      limit,
+      filters: normalizedFilters,
+    })}`;
+    const catalogTable =
+      filters.lista === 'ofertas' ? 'articulos' : filters.lista;
+    return this.readCache.getOrLoad(
+      cacheKey,
+      READ_CACHE_GROUPS.catalogo(idEmpresa, catalogTable),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.findCatalogoPageFromDatabase(idEmpresa, offset, limit, filters),
+    );
+  }
+
+  private async findCatalogoPageFromDatabase(
     idEmpresa: number,
     offset: number,
     limit: number,
@@ -45,7 +90,9 @@ export class PrismaInternoRepository implements InternoRepository {
     if (filters.lista === 'marcas') {
       const where = {
         id_empresa: idEmpresa,
-        AND: filters.searchWords.map((word) => ({ nombre: { contains: word } })),
+        AND: filters.searchWords.map((word) => ({
+          nombre: { contains: word },
+        })),
       };
       const [records, total] = await Promise.all([
         this.prisma.marca.findMany({
@@ -63,7 +110,9 @@ export class PrismaInternoRepository implements InternoRepository {
     if (filters.lista === 'rubros') {
       const where = {
         id_empresa: idEmpresa,
-        AND: filters.searchWords.map((word) => ({ nombre: { contains: word } })),
+        AND: filters.searchWords.map((word) => ({
+          nombre: { contains: word },
+        })),
       };
       const [records, total] = await Promise.all([
         this.prisma.rubro.findMany({
@@ -81,7 +130,9 @@ export class PrismaInternoRepository implements InternoRepository {
     if (filters.lista === 'proveedores') {
       const where = {
         id_empresa: idEmpresa,
-        AND: filters.searchWords.map((word) => ({ nombre: { contains: word } })),
+        AND: filters.searchWords.map((word) => ({
+          nombre: { contains: word },
+        })),
       };
       const [records, total] = await Promise.all([
         this.prisma.proveedor.findMany({
@@ -99,7 +150,9 @@ export class PrismaInternoRepository implements InternoRepository {
     if (filters.lista === 'ubicaciones') {
       const where = {
         id_empresa: idEmpresa,
-        AND: filters.searchWords.map((word) => ({ descripcion: { contains: word } })),
+        AND: filters.searchWords.map((word) => ({
+          descripcion: { contains: word },
+        })),
       };
       const [records, total] = await Promise.all([
         this.prisma.ubicacion.findMany({
@@ -131,9 +184,7 @@ export class PrismaInternoRepository implements InternoRepository {
         ...(filters.codigoInterno !== undefined
           ? [{ codigo_interno: filters.codigoInterno }]
           : []),
-        ...(filters.codigoBarra
-          ? [{ codigo_barra: filters.codigoBarra }]
-          : []),
+        ...(filters.codigoBarra ? [{ codigo_barra: filters.codigoBarra }] : []),
         ...(filters.marcaIds.length > 0
           ? [{ id_marca: { in: filters.marcaIds } }]
           : []),
@@ -163,16 +214,23 @@ export class PrismaInternoRepository implements InternoRepository {
   }
 
   async findSaldos(idEmpresa: number): Promise<SaldoInternoCliente[]> {
-    const clientes = await this.prisma.cliente.findMany({
-      where: { idEmpresa },
-      orderBy: [{ nombre: 'asc' }, { cuil: 'asc' }],
-      select: { nombre: true, saldo: true, updatedAt: true },
-    });
-    return clientes.map((cliente) => ({
-      nombre: cliente.nombre,
-      saldo: cliente.saldo,
-      updatedAt: cliente.updatedAt?.toISOString().slice(0, 10) ?? null,
-    }));
+    return this.readCache.getOrLoad(
+      `clientes:${idEmpresa}:saldos-internos`,
+      READ_CACHE_GROUPS.clientes(idEmpresa),
+      READ_CACHE_TTL_MS,
+      async () => {
+        const clientes = await this.prisma.cliente.findMany({
+          where: { idEmpresa },
+          orderBy: [{ nombre: 'asc' }, { cuil: 'asc' }],
+          select: { nombre: true, saldo: true, updatedAt: true },
+        });
+        return clientes.map((cliente) => ({
+          nombre: cliente.nombre,
+          saldo: cliente.saldo,
+          updatedAt: cliente.updatedAt?.toISOString().slice(0, 10) ?? null,
+        }));
+      },
+    );
   }
 }
 
@@ -185,7 +243,9 @@ function mapCategory(record: {
 }
 
 function mapCatalogoArticulo(
-  articulo: Prisma.ArticuloGetPayload<{ select: typeof INTERNAL_ARTICLE_SELECT }>,
+  articulo: Prisma.ArticuloGetPayload<{
+    select: typeof INTERNAL_ARTICLE_SELECT;
+  }>,
 ): CatalogoInternoArticulo {
   return {
     id: articulo.id.toString(),

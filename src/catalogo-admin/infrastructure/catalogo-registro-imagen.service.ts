@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import type { Dirent } from 'node:fs';
 import { CompanyMediaStorageService } from '@/shared/infrastructure/storage/company-media-storage.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import {
   MAX_CATALOGO_REGISTRO_IMAGEN_BYTES,
@@ -64,6 +65,7 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
     private readonly repository: CatalogoAdminRepository,
     private readonly companyStorage: CompanyMediaStorageService,
     private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
   ) {}
 
   async updateWithImage(
@@ -425,6 +427,16 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
         updated[lista] = updates.length;
       }
     });
+    const changedTables = (
+      Object.entries(updated) as [CatalogoListaConImagen, number][]
+    )
+      .filter(([, count]) => count > 0)
+      .map(([table]) => table);
+    await Promise.all(
+      changedTables.map((table) =>
+        this.readCache.invalidateCatalog(empresaId, table, false),
+      ),
+    );
 
     for (const previousImage of previousImages) {
       await this.removeStoredImage(

@@ -4,7 +4,7 @@ import { Role } from './role.enum';
 export class Usuario {
   private constructor(
     private readonly _id: number | null,
-    private _nombre: string,
+    private _nombre: string | null,
     private _passwordHash: string,
     private _role: Role,
     private _idEmpresa: number | null,
@@ -12,17 +12,17 @@ export class Usuario {
   ) {}
 
   static create(data: {
-    nombre: string;
+    nombre?: string | null;
     passwordHash: string;
     role?: Role;
     id_empresa?: number | null;
     refreshTokenHash?: string | null;
   }): Usuario {
-    const nombre = Usuario.normalizeNombre(data.nombre);
-    Usuario.validatePasswordHash(data.passwordHash);
     const role = data.role ?? Role.ADMIN;
     const idEmpresa = data.id_empresa ?? null;
     Usuario.validateRoleAssociation(role, idEmpresa);
+    const nombre = Usuario.normalizeNombre(data.nombre, role);
+    Usuario.validatePasswordHash(data.passwordHash);
     return new Usuario(
       null,
       nombre,
@@ -35,7 +35,7 @@ export class Usuario {
 
   static rehydrate(data: {
     id: number;
-    nombre: string;
+    nombre: string | null;
     passwordHash: string;
     role: Role;
     id_empresa: number | null;
@@ -44,7 +44,7 @@ export class Usuario {
     Usuario.validateRoleAssociation(data.role, data.id_empresa);
     return new Usuario(
       data.id,
-      data.nombre,
+      Usuario.normalizeNombre(data.nombre, data.role),
       data.passwordHash,
       data.role,
       data.id_empresa,
@@ -63,9 +63,10 @@ export class Usuario {
     const idEmpresa =
       data.id_empresa === undefined ? this._idEmpresa : data.id_empresa;
     Usuario.validateRoleAssociation(role, idEmpresa);
-    if (data.nombre !== undefined) {
-      this._nombre = Usuario.normalizeNombre(data.nombre);
-    }
+    this._nombre = Usuario.normalizeNombre(
+      data.nombre === undefined ? this._nombre : data.nombre,
+      role,
+    );
     if (data.passwordHash !== undefined) {
       Usuario.validatePasswordHash(data.passwordHash);
       this._passwordHash = data.passwordHash;
@@ -83,7 +84,7 @@ export class Usuario {
     return this._id;
   }
 
-  get nombre(): string {
+  get nombre(): string | null {
     return this._nombre;
   }
 
@@ -103,7 +104,14 @@ export class Usuario {
     return this._refreshTokenHash;
   }
 
-  private static normalizeNombre(nombre: string): string {
+  private static normalizeNombre(
+    nombre: string | null | undefined,
+    role: Role,
+  ): string | null {
+    if (role === Role.INTERNO) return null;
+    if (typeof nombre !== 'string') {
+      throw new DomainValidationException('El nombre del usuario es obligatorio.');
+    }
     const normalized = nombre.trim();
     if (normalized.length === 0) {
       throw new DomainValidationException(

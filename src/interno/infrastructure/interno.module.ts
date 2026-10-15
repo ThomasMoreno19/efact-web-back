@@ -7,6 +7,7 @@ import {
 import { EmpresaModule } from '@/empresa/infrastructure/empresa.module';
 import { PrismaModule } from '@/shared/infrastructure/prisma/prisma.module';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { UsuarioModule } from '@/usuario/infrastructure/usuario.module';
 import { INTERNO_REPOSITORY } from '../application/ports/interno.repository';
 import { FindCatalogoInternoPageUseCase } from '../application/use-cases/find-catalogo-interno-page.use-case';
@@ -22,9 +23,9 @@ import { PrismaInternoRepository } from './adapters/out/prisma-interno.repositor
     InternoAuthGuard,
     {
       provide: INTERNO_REPOSITORY,
-      useFactory: (prisma: PrismaService) =>
-        new PrismaInternoRepository(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, readCache: ReadCacheService) =>
+        new PrismaInternoRepository(prisma, readCache),
+      inject: [PrismaService, ReadCacheService],
     },
     {
       provide: FindCatalogoInternoPageUseCase,

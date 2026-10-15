@@ -22,6 +22,7 @@ import { CompanyMediaStorageModule } from '@/shared/infrastructure/storage/compa
 import { HORARIO_EMPRESA_REPOSITORY } from '../application/ports/horario-empresa.repository';
 import { CompanyExcelImportTokenModule } from '@/shared/infrastructure/security/company-excel-import-token.module';
 import { CompanyExcelImportTokenService } from '@/shared/infrastructure/security/company-excel-import-token.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 
 @Module({
   imports: [CompanyMediaStorageModule, CompanyExcelImportTokenModule],
@@ -33,8 +34,9 @@ import { CompanyExcelImportTokenService } from '@/shared/infrastructure/security
       useFactory: (
         prisma: PrismaService,
         excelImportTokens: CompanyExcelImportTokenService,
-      ) => new PrismaEmpresaRepository(prisma, excelImportTokens),
-      inject: [PrismaService, CompanyExcelImportTokenService],
+        readCache: ReadCacheService,
+      ) => new PrismaEmpresaRepository(prisma, excelImportTokens, readCache),
+      inject: [PrismaService, CompanyExcelImportTokenService, ReadCacheService],
     },
     {
       provide: FindAllEmpresasUseCase,
@@ -86,9 +88,9 @@ import { CompanyExcelImportTokenService } from '@/shared/infrastructure/security
     },
     {
       provide: HORARIO_EMPRESA_REPOSITORY,
-      useFactory: (prisma: PrismaService) =>
-        new PrismaHorarioEmpresaRepository(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, readCache: ReadCacheService) =>
+        new PrismaHorarioEmpresaRepository(prisma, readCache),
+      inject: [PrismaService, ReadCacheService],
     },
     {
       provide: FindHorariosEmpresaUseCase,

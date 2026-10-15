@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { EQUIPO_REPOSITORY } from '../application/ports/equipo.repository';
 import { CreateEquipoUseCase } from '../application/use-cases/create-equipo/create-equipo.use-case';
 import { DeleteEquipoUseCase } from '../application/use-cases/delete-equipo/delete-equipo.use-case';
@@ -17,8 +18,9 @@ import { PrismaEquipoBulkImportRepository } from './adapters/out/prisma-equipo-b
   providers: [
     {
       provide: EQUIPO_REPOSITORY,
-      useFactory: (prisma: PrismaService) => new PrismaEquipoRepository(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, readCache: ReadCacheService) =>
+        new PrismaEquipoRepository(prisma, readCache),
+      inject: [PrismaService, ReadCacheService],
     },
     PrismaEquipoBulkImportRepository,
     {

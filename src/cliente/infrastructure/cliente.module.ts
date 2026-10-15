@@ -14,6 +14,7 @@ import { ConsultarSaldoClienteUseCase } from '../application/use-cases/consultar
 import { ClienteController } from './adapters/in/cliente.controller';
 import { PrismaClienteRepository } from './adapters/out/prisma-cliente.repository';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import { ReadCacheService } from '@/shared/infrastructure/cache/read-cache.service';
 import { PASSWORD_HASHER } from '@/shared/application/ports/password-hasher';
 import { BcryptPasswordHasher } from '@/shared/infrastructure/security/bcrypt-password-hasher';
 import { CLIENTE_BULK_IMPORT_REPOSITORY } from '../application/ports/cliente-bulk-import.repository';
@@ -41,9 +42,9 @@ import { PrismaClienteBulkImportRepository } from './adapters/out/prisma-cliente
     },
     {
       provide: CLIENTE_REPOSITORY,
-      useFactory: (prisma: PrismaService) =>
-        new PrismaClienteRepository(prisma),
-      inject: [PrismaService],
+      useFactory: (prisma: PrismaService, readCache: ReadCacheService) =>
+        new PrismaClienteRepository(prisma, readCache),
+      inject: [PrismaService, ReadCacheService],
     },
     {
       provide: CreateClienteUseCase,

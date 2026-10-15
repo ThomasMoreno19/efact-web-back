@@ -1,5 +1,6 @@
 import type { PasswordHasher } from '@/shared/application/ports/password-hasher';
 import type { UsuarioRepository } from '@/usuario/application/ports/usuario.repository';
+import type { Usuario } from '@/usuario/domain/usuario.entity';
 import { Role } from '@/usuario/domain/role.enum';
 import type { RefreshTokenHasher } from '../../ports/refresh-token-hasher';
 import type { AuthTokenProvider } from '../../ports/auth-token-provider';
@@ -16,16 +17,21 @@ export class LoginInternoUseCase {
 
   async execute(
     idEmpresa: number,
-    nombre: string,
     contrasena: string,
   ): Promise<LoginResult> {
-    const usuario = await this.usuarios.findByNombre(nombre.trim());
+    const usuarios = await this.usuarios.findInternosByEmpresa(idEmpresa);
+    let usuario: Usuario | null = null;
+    for (const candidato of usuarios) {
+      if (await this.passwordHasher.verify(contrasena, candidato.passwordHash)) {
+        usuario = candidato;
+        break;
+      }
+    }
     if (
       !usuario ||
-      usuario.role !== Role.INTERNO ||
-      usuario.id_empresa !== idEmpresa ||
       usuario.id === null ||
-      !(await this.passwordHasher.verify(contrasena, usuario.passwordHash))
+      usuario.role !== Role.INTERNO ||
+      usuario.id_empresa !== idEmpresa
     ) {
       throw new InvalidCredentialsException();
     }

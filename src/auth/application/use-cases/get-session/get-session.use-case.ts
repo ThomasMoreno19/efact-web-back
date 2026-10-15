@@ -28,7 +28,8 @@ export class GetSessionUseCase {
     if (
       !usuario ||
       (usuario.role !== Role.SUPERADMIN && usuario.role !== Role.ADMIN) ||
-      usuario.id === null
+      usuario.id === null ||
+      usuario.nombre === null
     ) {
       throw new InvalidSessionException();
     }

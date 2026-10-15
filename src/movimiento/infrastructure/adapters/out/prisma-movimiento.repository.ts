@@ -5,6 +5,11 @@ import { Movimiento } from '../../../domain/movimiento.entity';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import { translatePrismaError } from '@/shared/infrastructure/prisma/translate-prisma-error';
 import { PrismaMovimientoMapper } from './prisma-movimiento.mapper';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import type {
   MovimientoAdminPage,
   MovimientoAdminRecord,
@@ -66,24 +71,39 @@ type MovimientoAdminDbRecord = Prisma.MovimientoGetPayload<{
 
 @Injectable()
 export class PrismaMovimientoRepository implements MovimientoRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   async findAll(idEmpresa: number): Promise<Movimiento[]> {
-    const movimientos = await this.prisma.movimiento.findMany({
-      where: { id_empresa: idEmpresa },
-      orderBy: { id: 'asc' },
-      select: movimientoSelect,
-    });
+    const movimientos = await this.readCache.getOrLoad(
+      `movimientos:${idEmpresa}:all`,
+      READ_CACHE_GROUPS.movimientos(idEmpresa),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.prisma.movimiento.findMany({
+          where: { id_empresa: idEmpresa },
+          orderBy: { id: 'asc' },
+          select: movimientoSelect,
+        }),
+    );
     return movimientos.map((movimiento) =>
       PrismaMovimientoMapper.toDomain(movimiento),
     );
   }
 
   async findById(idEmpresa: number, id: number): Promise<Movimiento | null> {
-    const movimiento = await this.prisma.movimiento.findUnique({
-      where: { id_id_empresa: { id, id_empresa: idEmpresa } },
-      select: movimientoSelect,
-    });
+    const movimiento = await this.readCache.getOrLoad(
+      `movimientos:${idEmpresa}:id:${id}`,
+      READ_CACHE_GROUPS.movimientos(idEmpresa),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.prisma.movimiento.findUnique({
+          where: { id_id_empresa: { id, id_empresa: idEmpresa } },
+          select: movimientoSelect,
+        }),
+    );
     return movimiento ? PrismaMovimientoMapper.toDomain(movimiento) : null;
   }
 
@@ -93,49 +113,70 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
     limit: number,
   ): Promise<MovimientoAdminPage> {
     const where = { id_empresa: idEmpresa };
-    const [total, movimientos] = await Promise.all([
-      this.prisma.movimiento.count({ where }),
-      this.prisma.movimiento.findMany({
-        where,
-        orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
-        skip: offset,
-        take: limit,
-        select: movimientoAdminSelect,
-      }),
-    ]);
-    return {
-      records: movimientos.map(mapAdminMovement),
-      total,
-    };
+    return this.readCache.getOrLoad(
+      `movimientos:${idEmpresa}:page:${offset}:${limit}`,
+      READ_CACHE_GROUPS.movimientos(idEmpresa),
+      READ_CACHE_TTL_MS,
+      async () => {
+        const [total, movimientos] = await Promise.all([
+          this.prisma.movimiento.count({ where }),
+          this.prisma.movimiento.findMany({
+            where,
+            orderBy: [{ fecha: 'desc' }, { id: 'desc' }],
+            skip: offset,
+            take: limit,
+            select: movimientoAdminSelect,
+          }),
+        ]);
+        return {
+          records: movimientos.map(mapAdminMovement),
+          total,
+        };
+      },
+    );
   }
 
   async findLatestByCuil(
     idEmpresa: number,
     cuil: string,
   ): Promise<MovimientoReparacionPublicoRecord[]> {
-    const equipos = await this.prisma.equipo.findMany({
-      where: { id_empresa: idEmpresa, cuil },
-      orderBy: { id: 'asc' },
-      select: reparacionPublicaEquipoSelect,
-    });
-    return equipos.flatMap((equipo) => {
-      const movimiento = mapPublicMovement(equipo);
-      return movimiento ? [movimiento] : [];
-    });
+    return this.readCache.getOrLoad(
+      `movimientos:${idEmpresa}:latest:cuil:${cuil}`,
+      READ_CACHE_GROUPS.movimientos(idEmpresa),
+      READ_CACHE_TTL_MS,
+      async () => {
+        const equipos = await this.prisma.equipo.findMany({
+          where: { id_empresa: idEmpresa, cuil },
+          orderBy: { id: 'asc' },
+          select: reparacionPublicaEquipoSelect,
+        });
+        return equipos.flatMap((equipo) => {
+          const movimiento = mapPublicMovement(equipo);
+          return movimiento ? [movimiento] : [];
+        });
+      },
+    );
   }
 
   async findLatestBySerial(
     idEmpresa: number,
     numeroSerie: string,
   ): Promise<MovimientoReparacionPublicoRecord[]> {
-    const equipo = await this.prisma.equipo.findFirst({
-      where: { id_empresa: idEmpresa, nro_serie: numeroSerie },
-      orderBy: { id: 'desc' },
-      select: reparacionPublicaEquipoSelect,
-    });
-    if (!equipo) return [];
-    const movimiento = mapPublicMovement(equipo);
-    return movimiento ? [movimiento] : [];
+    return this.readCache.getOrLoad(
+      `movimientos:${idEmpresa}:latest:serial:${numeroSerie}`,
+      READ_CACHE_GROUPS.movimientos(idEmpresa),
+      READ_CACHE_TTL_MS,
+      async () => {
+        const equipo = await this.prisma.equipo.findFirst({
+          where: { id_empresa: idEmpresa, nro_serie: numeroSerie },
+          orderBy: { id: 'desc' },
+          select: reparacionPublicaEquipoSelect,
+        });
+        if (!equipo) return [];
+        const movimiento = mapPublicMovement(equipo);
+        return movimiento ? [movimiento] : [];
+      },
+    );
   }
 
   async markSeen(
@@ -148,6 +189,7 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
       where: { id_empresa: idEmpresa, id: { in: ids }, seenAt: null },
       data: { seenAt },
     });
+    await this.readCache.invalidateMovements(idEmpresa);
   }
 
   async create(movimiento: Movimiento): Promise<Movimiento> {
@@ -156,6 +198,7 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
         data: PrismaMovimientoMapper.toPersistence(movimiento),
         select: movimientoSelect,
       });
+      await this.readCache.invalidateMovements(movimiento.idEmpresa);
       return PrismaMovimientoMapper.toDomain(created);
     } catch (error) {
       translatePrismaError(error);
@@ -180,6 +223,7 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
         },
       });
       if (result.count === 0) return null;
+      await this.readCache.invalidateMovements(idEmpresa);
 
       const updated = await this.prisma.movimiento.findUnique({
         where: { id_id_empresa: { id, id_empresa: idEmpresa } },
@@ -196,6 +240,7 @@ export class PrismaMovimientoRepository implements MovimientoRepository {
       const result = await this.prisma.movimiento.deleteMany({
         where: { id, id_empresa: idEmpresa },
       });
+      if (result.count > 0) await this.readCache.invalidateMovements(idEmpresa);
       return result.count > 0;
     } catch (error) {
       translatePrismaError(error, 'delete');

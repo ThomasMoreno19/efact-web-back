@@ -15,11 +15,6 @@ export class LoginInternoDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(255)
-  nombre!: string;
-
-  @IsString()
-  @IsNotEmpty()
   @MaxLength(72)
   contrasena!: string;
 }

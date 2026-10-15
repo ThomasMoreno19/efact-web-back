@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { Horario as PrismaHorario } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import type {
   HorarioEmpresa,
   HorarioEmpresaRepository,
@@ -8,14 +13,24 @@ import type {
 
 @Injectable()
 export class PrismaHorarioEmpresaRepository implements HorarioEmpresaRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   async findByEmpresaId(idEmpresa: number): Promise<HorarioEmpresa[]> {
-    const horarios = await this.prisma.horario.findMany({
-      where: { id_empresa: idEmpresa },
-      orderBy: [{ dia_semana: 'asc' }, { hora_apertura: 'asc' }],
-    });
-    return horarios.map(toDomain);
+    return this.readCache.getOrLoad(
+      `horarios:${idEmpresa}:all`,
+      READ_CACHE_GROUPS.horarios(idEmpresa),
+      READ_CACHE_TTL_MS,
+      async () => {
+        const horarios = await this.prisma.horario.findMany({
+          where: { id_empresa: idEmpresa },
+          orderBy: [{ dia_semana: 'asc' }, { hora_apertura: 'asc' }],
+        });
+        return horarios.map(toDomain);
+      },
+    );
   }
 
   async replaceByEmpresaId(
@@ -46,6 +61,7 @@ export class PrismaHorarioEmpresaRepository implements HorarioEmpresaRepository 
       },
     );
 
+    await this.readCache.invalidateHorarios(idEmpresa);
     return updatedHorarios.map(toDomain);
   }
 }

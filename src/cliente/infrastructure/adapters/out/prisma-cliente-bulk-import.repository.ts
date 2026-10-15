@@ -3,6 +3,11 @@ import { Prisma } from '@prisma/client';
 import type { ImportTransactionContext } from '@/shared/application/ports/import-unit-of-work';
 import { currentArgentinaDateAsUtcDate } from '@/shared/infrastructure/current-argentina-date';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import { toPrismaImportTransaction } from '@/shared/infrastructure/prisma/prisma-import-unit-of-work';
 import type {
   ClienteBulkImportRepository,
@@ -17,10 +22,18 @@ type SqlValue = string | number | bigint | boolean | Date | null;
 
 @Injectable()
 export class PrismaClienteBulkImportRepository implements ClienteBulkImportRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   countByEmpresa(empresaId: number) {
-    return this.prisma.cliente.count({ where: { idEmpresa: empresaId } });
+    return this.readCache.getOrLoad(
+      `clientes:${empresaId}:count`,
+      READ_CACHE_GROUPS.clientes(empresaId),
+      READ_CACHE_TTL_MS,
+      () => this.prisma.cliente.count({ where: { idEmpresa: empresaId } }),
+    );
   }
 
   async *iterateCuilDeletionBatches(

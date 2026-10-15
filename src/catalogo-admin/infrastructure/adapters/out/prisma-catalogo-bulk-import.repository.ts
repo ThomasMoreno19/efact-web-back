@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { ImportTransactionContext } from '@/shared/application/ports/import-unit-of-work';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import { toPrismaImportTransaction } from '@/shared/infrastructure/prisma/prisma-import-unit-of-work';
 import { CatalogoImportReferenciadoException } from '../../../application/exceptions/catalogo-import-referenciado.exception';
 import type {
@@ -25,10 +30,18 @@ type SqlRow = Record<string, SqlValue>;
 
 @Injectable()
 export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   countArticles(empresaId: number) {
-    return this.prisma.articulo.count({ where: { id_empresa: empresaId } });
+    return this.readCache.getOrLoad(
+      `catalogo:${empresaId}:articulos:count`,
+      READ_CACHE_GROUPS.catalogo(empresaId, 'articulos'),
+      READ_CACHE_TTL_MS,
+      () => this.prisma.articulo.count({ where: { id_empresa: empresaId } }),
+    );
   }
 
   async import(

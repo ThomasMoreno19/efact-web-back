@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import { translatePrismaError } from '@/shared/infrastructure/prisma/translate-prisma-error';
+import {
+  READ_CACHE_GROUPS,
+  READ_CACHE_TTL_MS,
+  ReadCacheService,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import type {
   CatalogoAdminRepository,
   CatalogoBusquedaPublica,
@@ -13,9 +18,52 @@ import type {
 
 @Injectable()
 export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly readCache: ReadCacheService,
+  ) {}
 
   async findAll(
+    empresaId: number,
+    lista: CatalogoLista,
+    searchWords: string[],
+    offset: number,
+    limit: number,
+    filters?: CatalogoBusquedaPublica,
+  ): Promise<CatalogoPagina> {
+    const normalizedFilters = {
+      codigoProveedor: filters?.codigoProveedor ?? null,
+      codigoInterno: filters?.codigoInterno ?? null,
+      codigoBarra: filters?.codigoBarra ?? null,
+      articuloIds: filters?.articuloIds?.map(String) ?? [],
+      soloOfertas: filters?.soloOfertas ?? false,
+      marcaIds: filters?.marcaIds ?? [],
+      rubroIds: filters?.rubroIds ?? [],
+    };
+    const cacheKey = `catalogo:${empresaId}:${JSON.stringify({
+      lista,
+      searchWords,
+      offset,
+      limit,
+      filters: normalizedFilters,
+    })}`;
+    return this.readCache.getOrLoad(
+      cacheKey,
+      READ_CACHE_GROUPS.catalogo(empresaId, lista),
+      READ_CACHE_TTL_MS,
+      () =>
+        this.findAllFromDatabase(
+          empresaId,
+          lista,
+          searchWords,
+          offset,
+          limit,
+          filters,
+        ),
+    );
+  }
+
+  private async findAllFromDatabase(
     empresaId: number,
     lista: CatalogoLista,
     searchWords: string[],
@@ -187,22 +235,24 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
     data: CatalogoRegistroActualizacion,
   ): Promise<unknown> {
     try {
+      let updatedRecord: unknown;
       switch (lista) {
         case 'articulos': {
           const articulo = await this.prisma.articulo.update({
             where: { id_id_empresa: { id: BigInt(id), id_empresa: empresaId } },
             data: pickArticleUpdate(data),
           });
-          return {
+          updatedRecord = {
             ...articulo,
             id: articulo.id.toString(),
             precio1: articulo.precio1?.toNumber() ?? null,
             precio2: articulo.precio2?.toNumber() ?? null,
             precio3: articulo.precio3?.toNumber() ?? null,
           };
+          break;
         }
         case 'marcas':
-          return await this.prisma.marca.update({
+          updatedRecord = await this.prisma.marca.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data: pickLookupUpdate(data),
             select: {
@@ -212,14 +262,16 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
               logo_url: true,
             },
           });
+          break;
         case 'proveedores':
-          return await this.prisma.proveedor.update({
+          updatedRecord = await this.prisma.proveedor.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data: pickLookupUpdate(data),
             select: { id: true, nombre: true, abreviatura: true },
           });
+          break;
         case 'rubros':
-          return await this.prisma.rubro.update({
+          updatedRecord = await this.prisma.rubro.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data: pickLookupUpdate(data),
             select: {
@@ -229,8 +281,9 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
               logo_url: true,
             },
           });
+          break;
         case 'ubicaciones':
-          return await this.prisma.ubicacion.update({
+          updatedRecord = await this.prisma.ubicacion.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data:
               data.descripcion === undefined
@@ -238,7 +291,14 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
                 : { descripcion: data.descripcion },
             select: { id: true, descripcion: true },
           });
+          break;
       }
+      await this.readCache.invalidateCatalog(
+        empresaId,
+        lista,
+        data.nombre !== undefined,
+      );
+      return updatedRecord;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -255,36 +315,51 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
     lista: CatalogoListaConImagen,
     id: string,
   ): Promise<string | null | undefined> {
-    switch (lista) {
-      case 'articulos': {
-        const record = await this.prisma.articulo.findUnique({
-          where: { id_id_empresa: { id: BigInt(id), id_empresa: empresaId } },
-          select: { logo_url: true },
-        });
-        return record?.logo_url;
-      }
-      case 'marcas': {
-        const record = await this.prisma.marca.findUnique({
-          where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
-          select: { logo_url: true },
-        });
-        return record?.logo_url;
-      }
-      case 'proveedores': {
-        const record = await this.prisma.proveedor.findUnique({
-          where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
-          select: { logo_url: true },
-        });
-        return record?.logo_url;
-      }
-      case 'rubros': {
-        const record = await this.prisma.rubro.findUnique({
-          where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
-          select: { logo_url: true },
-        });
-        return record?.logo_url;
-      }
-    }
+    return this.readCache.getOrLoad(
+      `catalogo:${empresaId}:image:${lista}:${id}`,
+      READ_CACHE_GROUPS.catalogo(empresaId, lista),
+      READ_CACHE_TTL_MS,
+      async () => {
+        switch (lista) {
+          case 'articulos': {
+            const record = await this.prisma.articulo.findUnique({
+              where: {
+                id_id_empresa: { id: BigInt(id), id_empresa: empresaId },
+              },
+              select: { logo_url: true },
+            });
+            return record?.logo_url;
+          }
+          case 'marcas': {
+            const record = await this.prisma.marca.findUnique({
+              where: {
+                id_id_empresa: { id: Number(id), id_empresa: empresaId },
+              },
+              select: { logo_url: true },
+            });
+            return record?.logo_url;
+          }
+          case 'proveedores': {
+            const record = await this.prisma.proveedor.findUnique({
+              where: {
+                id_id_empresa: { id: Number(id), id_empresa: empresaId },
+              },
+              select: { logo_url: true },
+            });
+            return record?.logo_url;
+          }
+          case 'rubros': {
+            const record = await this.prisma.rubro.findUnique({
+              where: {
+                id_id_empresa: { id: Number(id), id_empresa: empresaId },
+              },
+              select: { logo_url: true },
+            });
+            return record?.logo_url;
+          }
+        }
+      },
+    );
   }
 
   async delete(
@@ -330,6 +405,9 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
             })
           ).count;
           break;
+      }
+      if (deletedCount > 0) {
+        await this.readCache.invalidateCatalog(empresaId, lista);
       }
       return deletedCount > 0;
     } catch (error) {

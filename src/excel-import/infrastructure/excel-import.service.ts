@@ -6,6 +6,10 @@ import {
 } from '../application/excel-import-mode';
 import type { CatalogImportPlan } from '@/catalogo-admin/application/ports/catalogo-bulk-import.repository';
 import type { ClienteImportSet } from '@/cliente/application/ports/cliente-bulk-import.repository';
+import {
+  ReadCacheService,
+  type CatalogCacheTable,
+} from '@/shared/infrastructure/cache/read-cache.service';
 import { ExcelWorkbookParser } from './excel-workbook.parser';
 
 export const MAX_EXCEL_IMPORT_BYTES = 200 * 1024 * 1024;
@@ -15,6 +19,7 @@ export class ExcelImportService {
   constructor(
     private readonly parser: ExcelWorkbookParser,
     private readonly importCatalog: ImportarExcelCatalogoUseCase,
+    private readonly readCache: ReadCacheService,
   ) {}
 
   async preview(
@@ -41,6 +46,11 @@ export class ExcelImportService {
       toClienteSet(plan, mode),
       toCatalogMode(mode),
     );
+    await this.readCache.invalidateCatalogImportData(
+      empresaId,
+      catalogTablesForMode(mode),
+      selectsAll(mode) || mode === ExcelCatalogImportMode.CLIENTE,
+    );
     return { ...result, mode };
   }
 
@@ -62,6 +72,11 @@ export class ExcelImportService {
         mode !== ExcelCatalogImportMode.PROVEEDOR &&
         mode !== ExcelCatalogImportMode.UBICACION &&
         mode !== ExcelCatalogImportMode.CLIENTE,
+    );
+    await this.readCache.invalidateCatalogImportData(
+      empresaId,
+      catalogTablesForMode(mode),
+      selectsAll(mode) || mode === ExcelCatalogImportMode.CLIENTE,
     );
     return { ...result, mode };
   }
@@ -144,6 +159,28 @@ function selectsAll(mode: ExcelCatalogImportMode) {
     mode === ExcelCatalogImportMode.SINCRONIZAR_LEGACY ||
     mode === ExcelCatalogImportMode.TODOS
   );
+}
+
+function catalogTablesForMode(
+  mode: ExcelCatalogImportMode,
+): CatalogCacheTable[] {
+  if (selectsAll(mode)) {
+    return ['articulos', 'proveedores', 'rubros', 'marcas', 'ubicaciones'];
+  }
+  switch (mode) {
+    case ExcelCatalogImportMode.ARTICULO:
+      return ['articulos'];
+    case ExcelCatalogImportMode.PROVEEDOR:
+      return ['proveedores'];
+    case ExcelCatalogImportMode.RUBRO:
+      return ['rubros'];
+    case ExcelCatalogImportMode.MARCA:
+      return ['marcas'];
+    case ExcelCatalogImportMode.UBICACION:
+      return ['ubicaciones'];
+    default:
+      return [];
+  }
 }
 
 function toCatalogMode(mode: ExcelCatalogImportMode): ExcelImportMode {

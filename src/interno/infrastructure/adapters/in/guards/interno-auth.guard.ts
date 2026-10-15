@@ -17,7 +17,6 @@ export interface InternalRequest extends Request {
   interno: {
     id: number;
     idEmpresa: number;
-    nombre: string;
   };
 }
 
@@ -57,7 +56,6 @@ export class InternoAuthGuard implements CanActivate {
     request.interno = {
       id: usuario.id,
       idEmpresa: usuario.id_empresa,
-      nombre: usuario.nombre,
     };
     return true;
   }

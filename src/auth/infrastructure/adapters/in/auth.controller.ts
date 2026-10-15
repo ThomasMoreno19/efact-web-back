@@ -63,7 +63,6 @@ export class AuthController {
   ): Promise<void> {
     const tokens = await this.loginInternoUseCase.execute(
       dto.idEmpresa,
-      dto.nombre,
       dto.contrasena,
     );
     this.setAuthCookies(response, tokens);

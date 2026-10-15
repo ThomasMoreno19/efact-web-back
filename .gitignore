@@ -3,6 +3,7 @@
 /node_modules
 /build
 /.storage/
+/.efact-read-cache/
 
 # Logs
 logs

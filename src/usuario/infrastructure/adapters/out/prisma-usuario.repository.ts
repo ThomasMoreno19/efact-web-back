@@ -39,7 +39,7 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
   async findInternosByEmpresa(idEmpresa: number): Promise<Usuario[]> {
     const usuarios = await this.prisma.usuario.findMany({
       where: { idEmpresa, role: PrismaRol.INTERNO },
-      orderBy: { nombre: 'asc' },
+      orderBy: { id: 'asc' },
     });
     return usuarios.map((usuario) => PrismaUsuarioMapper.toDomain(usuario));
   }
