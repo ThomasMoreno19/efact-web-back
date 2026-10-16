@@ -29,6 +29,7 @@ export interface CatalogoInternoCategoria {
 export interface CatalogoInternoRelacion {
   id: number;
   nombre: string;
+  abreviatura?: string | null;
 }
 
 export interface CatalogoInternoArticulo {

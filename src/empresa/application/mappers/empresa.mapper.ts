@@ -94,6 +94,7 @@ export class EmpresaMapper {
       saldosHabilitados: configuracion.saldosHabilitados,
       reparacionesHabilitadas: configuracion.reparacionesHabilitadas,
       mostrarNavegacionPaginas: configuracion.mostrarNavegacionPaginas,
+      imagenesEnArticulos: configuracion.imagenesEnArticulos,
       pedidosFueraHorario: configuracion.pedidosFueraHorario,
       incluirCodigoBarra: configuracion.incluirCodigoBarra,
       toleranciaMinDias: configuracion.toleranciaMinDias,

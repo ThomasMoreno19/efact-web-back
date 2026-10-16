@@ -42,6 +42,8 @@ model Empresa {
   ubicaciones             Ubicacion[]
   usuarios                Usuario[]
   cliente                 Cliente[]
+  pedido                  Pedido[]
+  pedidoCorrelativo       PedidoCorrelativo?
 
   @@map("empresa")
 }
@@ -216,6 +218,40 @@ model Proveedor {
   @@id([id, id_empresa])
   @@index([id_empresa], map: "fk_proveedor_empresa")
   @@map("proveedor")
+}
+
+model Pedido {
+  id            Int              @id @default(autoincrement())
+  idEmpresa     Int              @map("id_empresa")
+  numeroPedido  Int              @map("numero_pedido")
+  nombre        String           @db.VarChar(255)
+  observacion   String?          @db.Text
+  createdAt     DateTime         @default(now()) @map("created_at") @db.DateTime(0)
+  empresa       Empresa          @relation(fields: [idEmpresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "pedido_id_empresa_foreign")
+  detallePedido DetallePedido[]
+
+  @@index([idEmpresa, numeroPedido], map: "pedido_empresa_numero_index")
+  @@map("pedido")
+}
+
+model DetallePedido {
+  id           Int      @id @default(autoincrement())
+  idPedido     Int      @map("id_pedido")
+  idArticulo   BigInt   @map("id_articulo")
+  cantidad     Int
+  observacion  String?  @db.VarChar(150)
+  pedido       Pedido   @relation(fields: [idPedido], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "detalle_pedido_id_pedido_foreign")
+
+  @@index([idPedido], map: "detalle_pedido_id_pedido_index")
+  @@map("detalle_pedido")
+}
+
+model PedidoCorrelativo {
+  idEmpresa    Int      @id @map("id_empresa")
+  ultimoNumero Int      @default(0) @map("ultimo_numero")
+  empresa      Empresa  @relation(fields: [idEmpresa], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "pedido_correlativo_id_empresa_foreign")
+
+  @@map("pedido_correlativo")
 }
 
 model Rubro {

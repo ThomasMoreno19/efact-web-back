@@ -31,9 +31,9 @@ const INTERNAL_ARTICLE_SELECT = {
   maxima_existencia: true,
   oferta: true,
   actualizado_en: true,
-  marca: { select: { id: true, nombre: true } },
-  rubro: { select: { id: true, nombre: true } },
-  proveedor: { select: { id: true, nombre: true } },
+  marca: { select: { id: true, nombre: true, abreviatura: true } },
+  rubro: { select: { id: true, nombre: true, abreviatura: true } },
+  proveedor: { select: { id: true, nombre: true, abreviatura: true } },
   ubicacion: { select: { id: true, descripcion: true } },
 } satisfies Prisma.ArticuloSelect;
 

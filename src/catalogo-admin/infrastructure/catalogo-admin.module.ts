@@ -16,6 +16,8 @@ import { PrismaCatalogoBulkImportRepository } from './adapters/out/prisma-catalo
 import { CATALOGO_IMAGE_IMPORT_PORT } from '../application/ports/catalog-image-import.port';
 import { ImportarImagenesCatalogoUseCase } from '../application/use-cases/importar-imagenes-catalogo.use-case';
 import { ImportarLoteImagenesCatalogoUseCase } from '../application/use-cases/importar-lote-imagenes-catalogo.use-case';
+import { PedidoPublicoController } from './adapters/in/pedido-publico.controller';
+import { PedidoPublicoService } from './pedido-publico.service';
 
 @Module({
   imports: [CompanyMediaStorageModule, EmpresaModule],
@@ -23,10 +25,12 @@ import { ImportarLoteImagenesCatalogoUseCase } from '../application/use-cases/im
     CatalogoAdminController,
     CatalogoPublicoController,
     CatalogoRegistroImagenController,
+    PedidoPublicoController,
   ],
   providers: [
     PrismaCatalogoAdminRepository,
     CatalogoRegistroImagenService,
+    PedidoPublicoService,
     PrismaCatalogoBulkImportRepository,
     {
       provide: CATALOGO_BULK_IMPORT_REPOSITORY,
