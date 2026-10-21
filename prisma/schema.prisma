@@ -32,9 +32,7 @@ model Empresa {
   mostrarNavegacionPaginas Boolean      @default(true) @map("mostrar_navegacion_paginas")
   articulo                Articulo[]
   equipo                  Equipo[]
-  externo                 Externo[]
   horarios                Horario[]
-  interno                 Interno?
   marca                   Marca[]
   movimiento              Movimiento[]
   proveedor               Proveedor[]
@@ -139,16 +137,6 @@ model Equipo {
   @@map("equipo")
 }
 
-model Externo {
-  id         Int     @id @default(autoincrement())
-  contrasena String  @db.VarChar(255)
-  id_empresa Int
-  empresa    Empresa @relation(fields: [id_empresa], references: [id], onDelete: Cascade, map: "fk_externo_empresa")
-
-  @@index([id_empresa], map: "fk_externo_empresa")
-  @@map("externo")
-}
-
 model Horario {
   id            Int      @id @default(autoincrement())
   id_empresa    Int
@@ -159,15 +147,6 @@ model Horario {
 
   @@index([id_empresa], map: "fk_horarios_empresa_empresa")
   @@map("horarios_empresa")
-}
-
-model Interno {
-  id         Int     @id @default(autoincrement())
-  contrasena String  @db.VarChar(255)
-  id_empresa Int     @unique(map: "uq_interno_empresa")
-  empresa    Empresa @relation(fields: [id_empresa], references: [id], onDelete: Cascade, map: "fk_interno_empresa")
-
-  @@map("interno")
 }
 
 model Marca {

@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomUUID } from 'node:crypto';
 import {
@@ -41,7 +41,7 @@ interface StoredEntry {
 }
 
 @Injectable()
-export class ReadCacheService implements OnModuleInit {
+export class ReadCacheService {
   private readonly logger = new Logger(ReadCacheService.name);
   private readonly cacheRoot: string;
   private readonly pending = new Map<string, PendingEntry>();
@@ -56,14 +56,6 @@ export class ReadCacheService implements OnModuleInit {
       'v1',
       'groups',
     );
-  }
-
-  async onModuleInit(): Promise<void> {
-    try {
-      await mkdir(this.cacheRoot, { recursive: true, mode: 0o700 });
-    } catch {
-      this.warnStorageFailure();
-    }
   }
 
   async getOrLoad<T>(
