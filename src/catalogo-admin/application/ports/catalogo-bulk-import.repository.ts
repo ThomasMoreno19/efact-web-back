@@ -48,6 +48,7 @@ export interface CatalogLookupImportRow {
 export interface CatalogLocationImportRow {
   id: number;
   descripcion: string;
+  abreviatura?: string | null;
 }
 
 export interface CatalogImportPlan {

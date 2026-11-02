@@ -53,6 +53,7 @@ export interface ClienteImportRow {
 export interface UbicacionImportRow {
   id: number;
   descripcion: string;
+  abreviatura?: string | null;
 }
 
 export interface ExcelImportPlan {
@@ -317,6 +318,9 @@ export class ExcelWorkbookParser {
             value: {
               id,
               descripcion: requiredText(row, headers, 'Descripción', 50),
+              abreviatura: headers.has(normalize('Abreviatura'))
+                ? optionalText(row, headers, 'Abreviatura', 30)
+                : undefined,
             },
           };
         },

@@ -252,6 +252,7 @@ model Ubicacion {
   id          Int
   id_empresa  Int
   descripcion String     @db.VarChar(50)
+  abreviatura String?    @db.VarChar(30)
   articulo    Articulo[]
   empresa     Empresa    @relation(fields: [id_empresa], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ubicacion_empresa")
 

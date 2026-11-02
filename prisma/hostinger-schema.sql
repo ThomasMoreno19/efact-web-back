@@ -177,6 +177,7 @@ CREATE TABLE `ubicacion` (
   `id` INTEGER NOT NULL,
   `id_empresa` INTEGER NOT NULL,
   `descripcion` VARCHAR(50) NOT NULL,
+  `abreviatura` VARCHAR(30) NULL,
   INDEX `fk_ubicacion_empresa` (`id_empresa`),
   PRIMARY KEY (`id`, `id_empresa`)
 ) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

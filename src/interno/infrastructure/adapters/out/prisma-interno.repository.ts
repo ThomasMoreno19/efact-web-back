@@ -30,11 +30,14 @@ const INTERNAL_ARTICLE_SELECT = {
   minima_existencia: true,
   maxima_existencia: true,
   oferta: true,
+  unidad_medida: true,
   actualizado_en: true,
   marca: { select: { id: true, nombre: true, abreviatura: true } },
   rubro: { select: { id: true, nombre: true, abreviatura: true } },
   proveedor: { select: { id: true, nombre: true, abreviatura: true } },
-  ubicacion: { select: { id: true, descripcion: true } },
+  ubicacion: {
+    select: { id: true, descripcion: true, abreviatura: true },
+  },
 } satisfies Prisma.ArticuloSelect;
 
 @Injectable()
@@ -66,6 +69,7 @@ export class PrismaInternoRepository implements InternoRepository {
       ),
     };
     const cacheKey = `catalogo:interno:${JSON.stringify({
+      responseVersion: 2,
       offset,
       limit,
       filters: normalizedFilters,
@@ -262,12 +266,17 @@ function mapCatalogoArticulo(
     minimaExistencia: articulo.minima_existencia,
     maximaExistencia: articulo.maxima_existencia,
     oferta: articulo.oferta,
+    unidadMedida: articulo.unidad_medida,
     actualizadoEn: articulo.actualizado_en?.toISOString().slice(0, 10) ?? null,
     marca: articulo.marca,
     rubro: articulo.rubro,
     proveedor: articulo.proveedor,
     ubicacion: articulo.ubicacion
-      ? { id: articulo.ubicacion.id, nombre: articulo.ubicacion.descripcion }
+      ? {
+          id: articulo.ubicacion.id,
+          nombre: articulo.ubicacion.descripcion,
+          abreviatura: articulo.ubicacion.abreviatura,
+        }
       : null,
   };
 }

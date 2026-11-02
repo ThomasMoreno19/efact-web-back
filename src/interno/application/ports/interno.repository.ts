@@ -47,6 +47,7 @@ export interface CatalogoInternoArticulo {
   minimaExistencia: number | null;
   maximaExistencia: number | null;
   oferta: boolean;
+  unidadMedida: string | null;
   actualizadoEn: string | null;
   marca: CatalogoInternoRelacion | null;
   rubro: CatalogoInternoRelacion | null;

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { ImportTransactionContext } from '@/shared/application/ports/import-unit-of-work';
+import { currentArgentinaDateAsUtcDate } from '@/shared/infrastructure/current-argentina-date';
 import { PrismaService } from '@/shared/infrastructure/prisma/prisma.service';
 import {
   READ_CACHE_GROUPS,
@@ -161,17 +162,21 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
     empresaId: number,
     rows: CatalogImportPlan['ubicacion']['rows'],
   ) {
+    const includesAbbreviation = rows.some(
+      ({ value }) => value.abreviatura !== undefined,
+    );
     const values: SqlRow[] = rows.map(({ value }) => ({
       id: value.id,
       id_empresa: empresaId,
       descripcion: value.descripcion,
+      abreviatura: value.abreviatura ?? null,
     }));
     await bulkUpsert(
       transaction,
       'ubicacion',
-      ['id', 'id_empresa', 'descripcion'],
+      ['id', 'id_empresa', 'descripcion', 'abreviatura'],
       values,
-      ['descripcion'],
+      ['descripcion', ...(includesAbbreviation ? ['abreviatura'] : [])],
     );
   }
 
@@ -180,6 +185,7 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
     empresaId: number,
     rows: CatalogImportSourceRow<CatalogArticleImportRow>[],
   ) {
+    const actualizadoEn = currentArgentinaDateAsUtcDate();
     const values: SqlRow[] = rows.map(({ value }) => ({
       id: value.id,
       codigo_interno: value.codigo_interno,
@@ -205,6 +211,7 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
       maxima_existencia: value.maxima_existencia,
       abreviatura: value.abreviatura,
       unidad_medida: value.unidad_medida,
+      actualizado_en: actualizadoEn,
     }));
 
     await bulkUpsert(
@@ -235,6 +242,7 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
         'maxima_existencia',
         'abreviatura',
         'unidad_medida',
+        'actualizado_en',
       ],
       values,
       [
@@ -257,6 +265,7 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
         'maxima_existencia',
         'abreviatura',
         'unidad_medida',
+        'actualizado_en',
       ],
     );
   }

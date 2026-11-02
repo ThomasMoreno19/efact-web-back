@@ -112,11 +112,13 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
           minima_existencia: true,
           maxima_existencia: true,
           tiene_existencia: true,
+          unidad_medida: true,
           no_procesado: true,
           oferta: true,
           actualizado_en: true,
-          marca: { select: { nombre: true } },
-          rubro: { select: { nombre: true } },
+          proveedor: { select: { nombre: true, abreviatura: true } },
+          marca: { select: { nombre: true, abreviatura: true } },
+          rubro: { select: { nombre: true, abreviatura: true } },
         };
 
         if (filters?.codigoInterno !== undefined) {
@@ -219,7 +221,7 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
             orderBy: [{ descripcion: 'asc' }, { id: 'asc' }],
             skip: offset,
             take: limit + 1,
-            select: { id: true, descripcion: true },
+            select: { id: true, descripcion: true, abreviatura: true },
           }),
           this.prisma.ubicacion.count({ where }),
         ]);
@@ -286,17 +288,24 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
           updatedRecord = await this.prisma.ubicacion.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data:
-              data.descripcion === undefined
-                ? {}
-                : { descripcion: data.descripcion },
-            select: { id: true, descripcion: true },
+              {
+                ...(data.descripcion !== undefined
+                  ? { descripcion: data.descripcion }
+                  : {}),
+                ...(data.abreviatura !== undefined
+                  ? { abreviatura: data.abreviatura }
+                  : {}),
+              },
+            select: { id: true, descripcion: true, abreviatura: true },
           });
           break;
       }
       await this.readCache.invalidateCatalog(
         empresaId,
         lista,
-        data.nombre !== undefined,
+        data.nombre !== undefined ||
+          data.descripcion !== undefined ||
+          data.abreviatura !== undefined,
       );
       return updatedRecord;
     } catch (error) {
