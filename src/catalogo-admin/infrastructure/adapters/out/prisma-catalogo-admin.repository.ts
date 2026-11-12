@@ -180,7 +180,7 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
             orderBy: [{ nombre: 'asc' }, { id: 'asc' }],
             skip: offset,
             take: limit + 1,
-            select: { id: true, nombre: true, abreviatura: true },
+            select: { id: true, nombre: true, abreviatura: true, logo_url: true },
           }),
           this.prisma.proveedor.count({ where }),
         ]);
@@ -269,7 +269,7 @@ export class PrismaCatalogoAdminRepository implements CatalogoAdminRepository {
           updatedRecord = await this.prisma.proveedor.update({
             where: { id_id_empresa: { id: Number(id), id_empresa: empresaId } },
             data: pickLookupUpdate(data),
-            select: { id: true, nombre: true, abreviatura: true },
+            select: { id: true, nombre: true, abreviatura: true, logo_url: true },
           });
           break;
         case 'rubros':

@@ -108,7 +108,7 @@ export class Usuario {
     nombre: string | null | undefined,
     role: Role,
   ): string | null {
-    if (role === Role.INTERNO) return null;
+    if (role === Role.INTERNO || role === Role.EXTERNO) return null;
     if (typeof nombre !== 'string') {
       throw new DomainValidationException('El nombre del usuario es obligatorio.');
     }
@@ -152,9 +152,9 @@ export class Usuario {
     role: Role,
     idEmpresa: number | null,
   ): void {
-    if (role === Role.INTERNO && idEmpresa === null) {
+    if ((role === Role.INTERNO || role === Role.EXTERNO) && idEmpresa === null) {
       throw new DomainValidationException(
-        'Los usuarios internos deben estar asociados a una empresa.',
+        'Los usuarios internos y externos deben estar asociados a una empresa.',
       );
     }
   }

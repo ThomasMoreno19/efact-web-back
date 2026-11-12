@@ -33,6 +33,8 @@ export class PrismaUsuarioMapper {
         return Role.ADMIN;
       case PrismaRol.INTERNO:
         return Role.INTERNO;
+      case PrismaRol.EXTERNO:
+        return Role.EXTERNO;
     }
   }
 
@@ -44,6 +46,8 @@ export class PrismaUsuarioMapper {
         return PrismaRol.ADMIN;
       case Role.INTERNO:
         return PrismaRol.INTERNO;
+      case Role.EXTERNO:
+        return PrismaRol.EXTERNO;
     }
   }
 }

@@ -18,9 +18,12 @@ import { ImportarImagenesCatalogoUseCase } from '../application/use-cases/import
 import { ImportarLoteImagenesCatalogoUseCase } from '../application/use-cases/importar-lote-imagenes-catalogo.use-case';
 import { PedidoPublicoController } from './adapters/in/pedido-publico.controller';
 import { PedidoPublicoService } from './pedido-publico.service';
+import { AuthModule } from '@/auth/infrastructure/auth.module';
+import { UsuarioModule } from '@/usuario/infrastructure/usuario.module';
+import { ExternoCatalogoGuard } from './adapters/in/guards/externo-catalogo.guard';
 
 @Module({
-  imports: [CompanyMediaStorageModule, EmpresaModule],
+  imports: [CompanyMediaStorageModule, EmpresaModule, AuthModule, UsuarioModule],
   controllers: [
     CatalogoAdminController,
     CatalogoPublicoController,
@@ -28,6 +31,7 @@ import { PedidoPublicoService } from './pedido-publico.service';
     PedidoPublicoController,
   ],
   providers: [
+    ExternoCatalogoGuard,
     PrismaCatalogoAdminRepository,
     CatalogoRegistroImagenService,
     PedidoPublicoService,

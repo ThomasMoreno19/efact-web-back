@@ -44,6 +44,14 @@ export class PrismaUsuarioRepository implements UsuarioRepository {
     return usuarios.map((usuario) => PrismaUsuarioMapper.toDomain(usuario));
   }
 
+  async findExternosByEmpresa(idEmpresa: number): Promise<Usuario[]> {
+    const usuarios = await this.prisma.usuario.findMany({
+      where: { idEmpresa, role: PrismaRol.EXTERNO },
+      orderBy: { id: 'asc' },
+    });
+    return usuarios.map((usuario) => PrismaUsuarioMapper.toDomain(usuario));
+  }
+
   async create(usuario: Usuario): Promise<Usuario> {
     try {
       const createdUsuario = await this.prisma.usuario.create({

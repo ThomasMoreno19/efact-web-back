@@ -17,6 +17,7 @@ import { REFRESH_TOKEN_HASHER } from '../application/ports/refresh-token-hasher'
 import { GetSessionUseCase } from '../application/use-cases/get-session/get-session.use-case';
 import { LoginUseCase } from '../application/use-cases/login/login.use-case';
 import { LoginInternoUseCase } from '../application/use-cases/login-interno/login-interno.use-case';
+import { LoginExternoUseCase } from '../application/use-cases/login-externo/login-externo.use-case';
 import { LogoutUseCase } from '../application/use-cases/logout/logout.use-case';
 import { RefreshTokenUseCase } from '../application/use-cases/refresh-token/refresh-token.use-case';
 import { AuthController } from './adapters/in/auth.controller';
@@ -94,6 +95,16 @@ import { Sha256RefreshTokenHasher } from './adapters/out/sha256-refresh-token.ha
         tokenProvider: NestJwtTokenProvider,
       ) => new GetSessionUseCase(repository, empresas, tokenProvider),
       inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY, AUTH_TOKEN_PROVIDER],
+    },
+    {
+      provide: LoginExternoUseCase,
+      useFactory: (
+        repository: PrismaUsuarioRepository,
+        passwordHasher: BcryptPasswordHasher,
+        refreshTokenHasher: Sha256RefreshTokenHasher,
+        tokenProvider: NestJwtTokenProvider,
+      ) => new LoginExternoUseCase(repository, passwordHasher, refreshTokenHasher, tokenProvider),
+      inject: [USUARIO_REPOSITORY, PASSWORD_HASHER, REFRESH_TOKEN_HASHER, AUTH_TOKEN_PROVIDER],
     },
     {
       provide: RefreshTokenUseCase,

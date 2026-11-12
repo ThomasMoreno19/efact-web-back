@@ -30,6 +30,7 @@ model Empresa {
   saldosHabilitados       Boolean      @default(false) @map("saldos_habilitados")
   reparacionesHabilitadas Boolean      @default(false) @map("reparaciones_habilitadas")
   mostrarNavegacionPaginas Boolean      @default(true) @map("mostrar_navegacion_paginas")
+  mostrarNombreConLogo    Boolean      @default(false) @map("mostrar_nombre_con_logo")
   articulo                Articulo[]
   equipo                  Equipo[]
   horarios                Horario[]
@@ -265,6 +266,7 @@ enum Rol {
   SUPERADMIN @map("Superadmin")
   ADMIN      @map("Admin")
   INTERNO    @map("Interno")
+  EXTERNO    @map("Externo")
 
   @@map("usuario_role")
 }

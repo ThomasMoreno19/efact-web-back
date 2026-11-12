@@ -17,6 +17,7 @@ import { LoginCommand } from '../../../application/use-cases/login/login.command
 import type { LoginResult } from '../../../application/use-cases/login/login.use-case';
 import { LoginUseCase } from '../../../application/use-cases/login/login.use-case';
 import { LoginInternoUseCase } from '../../../application/use-cases/login-interno/login-interno.use-case';
+import { LoginExternoUseCase } from '../../../application/use-cases/login-externo/login-externo.use-case';
 import { LogoutCommand } from '../../../application/use-cases/logout/logout.command';
 import { LogoutUseCase } from '../../../application/use-cases/logout/logout.use-case';
 import { RefreshTokenCommand } from '../../../application/use-cases/refresh-token/refresh-token.command';
@@ -35,6 +36,7 @@ export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
     private readonly loginInternoUseCase: LoginInternoUseCase,
+    private readonly loginExternoUseCase: LoginExternoUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
     private readonly logoutUseCase: LogoutUseCase,
     private readonly config: ConfigService,
@@ -65,6 +67,17 @@ export class AuthController {
       dto.idEmpresa,
       dto.contrasena,
     );
+    this.setAuthCookies(response, tokens);
+  }
+
+  @Post('login-externo')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  async loginExterno(
+    @Body() dto: LoginInternoDto,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<void> {
+    const tokens = await this.loginExternoUseCase.execute(dto.idEmpresa, dto.contrasena);
     this.setAuthCookies(response, tokens);
   }
 

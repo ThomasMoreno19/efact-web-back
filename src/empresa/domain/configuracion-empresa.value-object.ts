@@ -7,6 +7,7 @@ export type ConfiguracionEmpresaData = {
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
   mostrarNavegacionPaginas: boolean;
+  mostrarNombreConLogo: boolean;
   imagenesEnArticulos: boolean;
   incluirHorarios: boolean;
   pedidosFueraHorario: boolean;
@@ -25,6 +26,7 @@ export class ConfiguracionEmpresa {
     private readonly _saldosHabilitados: boolean,
     private readonly _reparacionesHabilitadas: boolean,
     private readonly _mostrarNavegacionPaginas: boolean,
+    private readonly _mostrarNombreConLogo: boolean,
     private readonly _imagenesEnArticulos: boolean,
     private readonly _incluirHorarios: boolean,
     private readonly _pedidosFueraHorario: boolean,
@@ -46,6 +48,7 @@ export class ConfiguracionEmpresa {
       data.saldosHabilitados ?? false,
       data.reparacionesHabilitadas ?? false,
       data.mostrarNavegacionPaginas ?? true,
+      data.mostrarNombreConLogo ?? false,
       data.imagenesEnArticulos ?? true,
       data.incluirHorarios ?? false,
       data.pedidosFueraHorario ?? false,
@@ -63,6 +66,7 @@ export class ConfiguracionEmpresa {
       data.saldosHabilitados,
       data.reparacionesHabilitadas,
       data.mostrarNavegacionPaginas,
+      data.mostrarNombreConLogo,
       data.imagenesEnArticulos,
       data.incluirHorarios,
       data.pedidosFueraHorario,
@@ -83,6 +87,8 @@ export class ConfiguracionEmpresa {
         data.reparacionesHabilitadas ?? this._reparacionesHabilitadas,
       mostrarNavegacionPaginas:
         data.mostrarNavegacionPaginas ?? this._mostrarNavegacionPaginas,
+      mostrarNombreConLogo:
+        data.mostrarNombreConLogo ?? this._mostrarNombreConLogo,
       imagenesEnArticulos:
         data.imagenesEnArticulos ?? this._imagenesEnArticulos,
       incluirHorarios: data.incluirHorarios ?? this._incluirHorarios,
@@ -122,6 +128,10 @@ export class ConfiguracionEmpresa {
 
   get mostrarNavegacionPaginas(): boolean {
     return this._mostrarNavegacionPaginas;
+  }
+
+  get mostrarNombreConLogo(): boolean {
+    return this._mostrarNombreConLogo;
   }
 
   get imagenesEnArticulos(): boolean {

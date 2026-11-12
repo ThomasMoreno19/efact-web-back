@@ -61,6 +61,10 @@ export class UpdateEmpresaDto {
   @IsBoolean()
   mostrarNavegacionPaginas?: boolean;
 
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  mostrarNombreConLogo?: boolean;
+
   @ValidateIf(
     (_object, value: unknown) => value !== undefined && value !== null,
   )

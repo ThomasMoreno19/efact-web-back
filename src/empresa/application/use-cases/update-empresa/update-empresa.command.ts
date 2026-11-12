@@ -18,5 +18,6 @@ export class UpdateEmpresaCommand {
     readonly saldosHabilitados?: boolean,
     readonly reparacionesHabilitadas?: boolean,
     readonly mostrarNavegacionPaginas?: boolean,
+    readonly mostrarNombreConLogo?: boolean,
   ) {}
 }

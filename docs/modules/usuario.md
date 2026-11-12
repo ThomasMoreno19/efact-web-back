@@ -1,7 +1,8 @@
 # Reglas de negocio: usuario
 
-- Los roles son `Superadmin`, `Admin` e `Interno`; el valor inicial es `Admin`.
+- Los roles son `Superadmin`, `Admin`, `Interno` y `Externo`; el valor inicial es `Admin`.
 - Un usuario Interno debe estar asociado a una empresa y solo puede consultar el catálogo interno y los saldos internos de esa empresa. No administra datos ni puede acceder a otra empresa.
+- Un usuario Externo debe estar asociado a una empresa y solo puede ingresar al catálogo público de esa empresa. Las cuentas Externo se identifican mediante contraseña, sin usuario ni email. Si una empresa tiene al menos una cuenta Externo, el catálogo y la creación de pedidos requieren una sesión Externo válida de esa empresa.
 - Un usuario puede no estar asociado a una empresa. Una empresa puede tener varios usuarios asociados.
 - Las contraseñas se almacenan como hashes. Nunca devolver ni registrar la contraseña en texto plano ni su hash.
-- El inicio de sesión de `/admin` acepta usuarios `Superadmin` y `Admin`. Superadmin administra todas las empresas y su sesión vence junto con el token de acceso, sin refresh token. Admin debe estar asociado a una empresa y accede a la administración de esa empresa. Los usuarios Interno acceden mediante las rutas internas de su empresa. Las respuestas de autenticación no incluyen credenciales ni hashes.
+- El inicio de sesión de `/admin` acepta usuarios `Superadmin` y `Admin`. Superadmin administra todas las empresas y su sesión vence junto con el token de acceso, sin refresh token. Admin debe estar asociado a una empresa y accede a la administración de esa empresa. Los usuarios Interno y Externo acceden con refresh token. Las respuestas de autenticación no incluyen credenciales ni hashes.

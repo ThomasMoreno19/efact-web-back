@@ -21,7 +21,7 @@ export class RefreshTokenUseCase {
     if (
       !usuario ||
       usuario.id === null ||
-      (usuario.role !== Role.INTERNO &&
+      (usuario.role !== Role.INTERNO && usuario.role !== Role.EXTERNO &&
         (usuario.role !== Role.ADMIN || usuario.id_empresa === null)) ||
       !usuario.refreshTokenHash
     ) {

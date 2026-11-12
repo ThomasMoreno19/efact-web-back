@@ -37,15 +37,16 @@ interface UploadedImage {
 }
 
 interface ImageType {
-  extension: 'png' | 'jpg' | 'webp';
-  contentType: 'image/png' | 'image/jpeg' | 'image/webp';
+  extension: 'png' | 'jpg' | 'webp' | 'gif';
+  contentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif';
 }
 
 const PNG_SIGNATURE = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
 ]);
+const GIF_SIGNATURES = [Buffer.from('GIF87a'), Buffer.from('GIF89a')];
 const IMAGE_FILENAME_PATTERN =
-  /^catalogo-[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}\.(?:png|jpg|webp)$/i;
+  /^catalogo-[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}\.(?:png|jpg|webp|gif)$/i;
 const IMAGE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 const IMAGE_COLLECTION_TABLES: Record<CatalogoListaConImagen, string> = {
   articulos: 'articulo',
@@ -130,6 +131,36 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
     }
 
     await this.removeStoredImage(empresaId, lista, resourceId, oldImageUrl);
+    return updatedRecord;
+  }
+
+  async removeImage(
+    empresaId: number,
+    lista: CatalogoListaConImagen,
+    id: string,
+    data: CatalogoRegistroActualizacion,
+  ) {
+    const oldImageUrl = await this.repository.findImageUrl(
+      empresaId,
+      lista,
+      id,
+    );
+    if (oldImageUrl === undefined) {
+      throw new NotFoundException('No se encontró el registro.');
+    }
+    const updatedRecord = await this.repository.update(empresaId, lista, id, {
+      ...data,
+      logo_url: null,
+    });
+    if (updatedRecord === null) {
+      throw new NotFoundException('No se encontró el registro.');
+    }
+    await this.removeStoredImage(
+      empresaId,
+      lista,
+      this.toStorageId(lista, id),
+      oldImageUrl,
+    );
     return updatedRecord;
   }
 
@@ -587,6 +618,13 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
       return { extension: 'png', contentType: 'image/png' };
     }
     if (
+      GIF_SIGNATURES.some((signature) =>
+        buffer.subarray(0, 6).equals(signature),
+      )
+    ) {
+      return { extension: 'gif', contentType: 'image/gif' };
+    }
+    if (
       buffer.length >= 3 &&
       buffer[0] === 0xff &&
       buffer[1] === 0xd8 &&
@@ -602,7 +640,7 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
       return { extension: 'webp', contentType: 'image/webp' };
     }
     throw new BadRequestException(
-      'El archivo debe ser una imagen PNG, JPG o WebP.',
+      'El archivo debe ser una imagen PNG, JPG, WebP o GIF.',
     );
   }
 
@@ -612,6 +650,8 @@ export class CatalogoRegistroImagenService implements CatalogImageImportPort {
     if (extension === 'jpg') {
       return { extension, contentType: 'image/jpeg' };
     }
+    if (extension === 'gif') return { extension, contentType: 'image/gif' };
+    if (extension === 'webp') return { extension, contentType: 'image/webp' };
     return { extension: 'webp', contentType: 'image/webp' };
   }
 

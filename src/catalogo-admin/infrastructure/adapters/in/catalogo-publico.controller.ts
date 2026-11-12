@@ -9,6 +9,7 @@ import {
   ParseEnumPipe,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { Public } from '@/shared/infrastructure/adapters/in/decorators/public.decorator';
 import {
@@ -17,6 +18,7 @@ import {
 } from '@/empresa/application/ports/empresa.repository';
 import { CatalogoLista } from '../../../application/ports/catalogo-admin.repository';
 import { FindCatalogoListaUseCase } from '../../../application/use-cases/find-catalogo-lista.use-case';
+import { ExternoCatalogoGuard } from './guards/externo-catalogo.guard';
 
 const CatalogoListaPublica = {
   ARTICULOS: 'articulos',
@@ -37,6 +39,14 @@ export class CatalogoPublicoController {
   ) {}
 
   @Public()
+  @Get('session')
+  @UseGuards(ExternoCatalogoGuard)
+  externalSession() {
+    return { authenticated: true };
+  }
+
+  @Public()
+  @UseGuards(ExternoCatalogoGuard)
   @Get(':lista')
   @Header('Cache-Control', 'no-store')
   async findAll(

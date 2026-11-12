@@ -68,12 +68,15 @@ export class CatalogoAdminController {
     @Body() dto: UpdateCatalogoRegistroDto,
   ) {
     validateRecordId(lista, id);
-    const record = await this.updateCatalogoRegistro.execute(
-      empresaId,
-      lista,
-      id,
-      dto,
-    );
+    const record =
+      dto.logo_url === null && isImageCollection(lista)
+        ? await this.recordImage.removeImage(empresaId, lista, id, dto)
+        : await this.updateCatalogoRegistro.execute(
+            empresaId,
+            lista,
+            id,
+            dto,
+          );
     if (record === null) {
       throw new NotFoundException('No se encontró el registro.');
     }

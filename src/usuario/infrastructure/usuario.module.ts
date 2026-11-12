@@ -16,6 +16,9 @@ import { USUARIO_REPOSITORY } from '../application/ports/usuario.repository';
 import { UsuarioController } from './adapters/in/usuario.controller';
 import { UsuarioAdminEmpresaController } from './adapters/in/usuario-admin-empresa.controller';
 import { UsuarioInternoController } from './adapters/in/usuario-interno.controller';
+import { UsuarioExternoController } from './adapters/in/usuario-externo.controller';
+import { CreateExternoUseCase } from '../application/use-cases/create-externo/create-externo.use-case';
+import { FindExternosByEmpresaUseCase } from '../application/use-cases/find-externos-by-empresa/find-externos-by-empresa.use-case';
 import { PrismaUsuarioRepository } from './adapters/out/prisma-usuario.repository';
 import { BcryptPasswordHasher } from '@/shared/infrastructure/security/bcrypt-password-hasher';
 import { PASSWORD_HASHER } from '@/shared/application/ports/password-hasher';
@@ -28,6 +31,7 @@ import { UpdateAdminCredentialsByEmpresaUseCase } from '../application/use-cases
   controllers: [
     UsuarioController,
     UsuarioInternoController,
+    UsuarioExternoController,
     UsuarioAdminEmpresaController,
   ],
   providers: [
@@ -74,6 +78,18 @@ import { UpdateAdminCredentialsByEmpresaUseCase } from '../application/use-cases
         usuarios: PrismaUsuarioRepository,
         empresas: EmpresaRepository,
       ) => new FindInternosByEmpresaUseCase(usuarios, empresas),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY],
+    },
+    {
+      provide: CreateExternoUseCase,
+      useFactory: (usuarios: PrismaUsuarioRepository, empresas: EmpresaRepository, hasher: BcryptPasswordHasher) =>
+        new CreateExternoUseCase(usuarios, empresas, hasher),
+      inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY, PASSWORD_HASHER],
+    },
+    {
+      provide: FindExternosByEmpresaUseCase,
+      useFactory: (usuarios: PrismaUsuarioRepository, empresas: EmpresaRepository) =>
+        new FindExternosByEmpresaUseCase(usuarios, empresas),
       inject: [USUARIO_REPOSITORY, EMPRESA_REPOSITORY],
     },
     {
