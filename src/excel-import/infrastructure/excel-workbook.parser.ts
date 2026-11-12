@@ -328,7 +328,6 @@ export class ExcelWorkbookParser {
       ),
     };
 
-    this.validateArticleReferences(plan, issues);
     if (issues.length > 0) {
       const reportedIssues = issues.slice(0, MAX_REPORTED_ISSUES);
       throw new BadRequestException({
@@ -429,64 +428,6 @@ export class ExcelWorkbookParser {
     return { rows, deletedKeys };
   }
 
-  private validateArticleReferences(
-    plan: ExcelImportPlan,
-    issues: ExcelImportIssue[],
-  ) {
-    const proveedores = new Set(
-      plan.proveedor.rows.map(({ value }) => value.id),
-    );
-    const rubros = new Set(plan.rubro.rows.map(({ value }) => value.id));
-    const marcas = new Set(plan.marca.rows.map(({ value }) => value.id));
-    const ubicaciones = new Set(
-      plan.ubicacion.rows.map(({ value }) => value.id),
-    );
-
-    for (const article of plan.articulo.rows) {
-      const references: Array<{
-        id: number | null;
-        values: Set<number>;
-        column: string;
-        label: string;
-      }> = [
-        {
-          id: article.value.id_proveedor,
-          values: proveedores,
-          column: 'ID Proveedor',
-          label: 'proveedor',
-        },
-        {
-          id: article.value.id_rubro,
-          values: rubros,
-          column: 'ID Rubro',
-          label: 'rubro',
-        },
-        {
-          id: article.value.id_marca,
-          values: marcas,
-          column: 'ID Marca',
-          label: 'marca',
-        },
-        {
-          id: article.value.id_ubicacion,
-          values: ubicaciones,
-          column: 'ID Ubicacion',
-          label: 'ubicación',
-        },
-      ];
-
-      for (const reference of references) {
-        if (reference.id !== null && !reference.values.has(reference.id)) {
-          issues.push({
-            sheet: 'Articulo',
-            row: article.rowNumber,
-            column: reference.column,
-            message: `No existe el ${reference.label} indicado en la hoja correspondiente.`,
-          });
-        }
-      }
-    }
-  }
 }
 
 function readHeaders(

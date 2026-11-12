@@ -185,15 +185,70 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
     empresaId: number,
     rows: CatalogImportSourceRow<CatalogArticleImportRow>[],
   ) {
+    const referenceIds = {
+      id_proveedor: new Set<number>(),
+      id_rubro: new Set<number>(),
+      id_marca: new Set<number>(),
+      id_ubicacion: new Set<number>(),
+    };
+    for (const { value } of rows) {
+      for (const field of Object.keys(referenceIds) as ArticleLookupField[]) {
+        const id = value[field];
+        if (id !== null) referenceIds[field].add(id);
+      }
+    }
+
+    const [proveedorIds, rubroIds, marcaIds, ubicacionIds] = await Promise.all([
+      this.existingLookupIds(
+        referenceIds.id_proveedor,
+        (ids) => transaction.proveedor.findMany({
+          where: { id_empresa: empresaId, id: { in: ids } },
+          select: { id: true },
+        }),
+      ),
+      this.existingLookupIds(
+        referenceIds.id_rubro,
+        (ids) => transaction.rubro.findMany({
+          where: { id_empresa: empresaId, id: { in: ids } },
+          select: { id: true },
+        }),
+      ),
+      this.existingLookupIds(
+        referenceIds.id_marca,
+        (ids) => transaction.marca.findMany({
+          where: { id_empresa: empresaId, id: { in: ids } },
+          select: { id: true },
+        }),
+      ),
+      this.existingLookupIds(
+        referenceIds.id_ubicacion,
+        (ids) => transaction.ubicacion.findMany({
+          where: { id_empresa: empresaId, id: { in: ids } },
+          select: { id: true },
+        }),
+      ),
+    ]);
+    const existingIds: Record<ArticleLookupField, Set<number>> = {
+      id_proveedor: proveedorIds,
+      id_rubro: rubroIds,
+      id_marca: marcaIds,
+      id_ubicacion: ubicacionIds,
+    };
     const actualizadoEn = currentArgentinaDateAsUtcDate();
     const values: SqlRow[] = rows.map(({ value }) => ({
       id: value.id,
       codigo_interno: value.codigo_interno,
       codigo_barra: value.codigo_barra,
-      id_rubro: value.id_rubro,
-      id_proveedor: value.id_proveedor,
-      id_marca: value.id_marca,
-      id_ubicacion: value.id_ubicacion,
+      id_rubro: this.nullMissingLookupId(value.id_rubro, existingIds.id_rubro),
+      id_proveedor: this.nullMissingLookupId(
+        value.id_proveedor,
+        existingIds.id_proveedor,
+      ),
+      id_marca: this.nullMissingLookupId(value.id_marca, existingIds.id_marca),
+      id_ubicacion: this.nullMissingLookupId(
+        value.id_ubicacion,
+        existingIds.id_ubicacion,
+      ),
       id_empresa: empresaId,
       nombre: value.nombre,
       precio1: value.precio1,
@@ -268,6 +323,22 @@ export class PrismaCatalogoBulkImportRepository implements CatalogBulkImportRepo
         'actualizado_en',
       ],
     );
+  }
+
+  private async existingLookupIds(
+    ids: Set<number>,
+    findMany: (ids: number[]) => Promise<Array<{ id: number }>>,
+  ) {
+    const existing = new Set<number>();
+    for (const batch of chunks([...ids], BATCH_SIZE)) {
+      const rows = await findMany(batch);
+      for (const row of rows) existing.add(row.id);
+    }
+    return existing;
+  }
+
+  private nullMissingLookupId(id: number | null, existingIds: Set<number>) {
+    return id !== null && existingIds.has(id) ? id : null;
   }
 
   private async deleteByMode(
